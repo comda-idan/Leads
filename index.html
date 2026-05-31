@@ -183,6 +183,13 @@ tbody tr:hover{background:var(--surface-2);}
 .leadid-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 12px;padding:9px 12px;
   background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;font-size:12px;color:var(--text-soft);}
 .leadid-row code{font-family:ui-monospace,monospace;font-size:11px;color:var(--brand-dark);user-select:all;word-break:break-all;}
+.mkt-block{background:#f6f3ff;border:1px solid #e6dcff;border-radius:12px;padding:12px 14px;margin:2px 0 12px;}
+.mkt-block-head{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#7c3aed;margin-bottom:8px;}
+.mkt-block-head svg{width:16px;height:16px;}
+.mkt-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:4px 0;border-top:1px solid #efe8ff;}
+.mkt-row:first-of-type{border-top:none;}
+.mkt-row span{color:var(--text-soft);}
+.mkt-row b{color:var(--text);font-weight:600;text-align:end;word-break:break-word;}
 .prod-list{display:flex;flex-direction:column;gap:8px;}
 .prod-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);
   border:1px solid var(--border-soft);border-radius:11px;}
@@ -270,6 +277,7 @@ html[dir=rtl] .field select{background-position:left 14px center;}
 .r-admin{background:var(--red-bg);color:var(--red);}
 .r-manager{background:var(--blue-bg);color:var(--blue);}
 .r-rep{background:var(--gray-bg);color:var(--gray);}
+.r-marketing{background:#f3e8ff;color:#9333ea;}
 
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px;}
 @media(max-width:760px){.charts-grid{grid-template-columns:1fr;}}
@@ -496,7 +504,13 @@ const I18N = {
     pw_req_len:"לפחות 8 תווים", pw_req_upper:"אות גדולה (A-Z)", pw_req_lower:"אות קטנה (a-z)", pw_req_num:"מספר (0-9)", pw_req_special:"תו מיוחד (!@#$…)",
     set_new_pw_title:"בחירת סיסמה קבועה", set_new_pw_sub:"זוהי כניסה ראשונה עם סיסמה זמנית. יש לבחור סיסמה חדשה וקבועה כדי להמשיך.",
     cant_lock_last_admin:"לא ניתן לנעול את מנהל המערכת הפעיל היחיד", cant_lock_self:"לא ניתן לנעול את המשתמש שלך",
-    cant_delete_last_admin:"לא ניתן למחוק את מנהל המערכת האחרון", temp_pw_sent:"נשלחה סיסמה זמנית. המשתמש יתבקש לבחור סיסמה חדשה בכניסה."
+    cant_delete_last_admin:"לא ניתן למחוק את מנהל המערכת האחרון", temp_pw_sent:"נשלחה סיסמה זמנית. המשתמש יתבקש לבחור סיסמה חדשה בכניסה.",
+    nav_marketing:"שיווק", marketing_title:"ניתוח שיווק", marketing_sub:"התפלגות הלידים לפי מקורות וקמפיינים",
+    role_marketing:"שיווק", marketing_fields:"נתוני שיווק (מקור הליד)", marketing_readonly:"נתוני שיווק נקלטים אוטומטית מהמקור (אקסל / API)",
+    mk_source:"Source", mk_campaign:"Campaign", mk_adset:"Adset", mk_ad:"Ad", mk_keyword:"Keyword", mk_term:"Term", mk_content:"Content",
+    select_field:"בחר שדה לניתוח", breakdown_by:"התפלגות לפי", cross_status:"חיתוך מול סטטוס הליד",
+    no_marketing_data:"אין נתוני שיווק להצגה", no_marketing_sub:"לידים שייובאו מאקסל או API עם נתוני שיווק יופיעו כאן",
+    not_set:"לא צוין", total_in_field:"סך ערכים", top_value:"ערך מוביל"
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -548,7 +562,13 @@ const I18N = {
     pw_req_len:"At least 8 characters", pw_req_upper:"Uppercase letter (A-Z)", pw_req_lower:"Lowercase letter (a-z)", pw_req_num:"Number (0-9)", pw_req_special:"Special character (!@#$…)",
     set_new_pw_title:"Set a permanent password", set_new_pw_sub:"This is a first sign-in with a temporary password. Choose a new permanent password to continue.",
     cant_lock_last_admin:"Cannot lock the only active admin", cant_lock_self:"You cannot lock your own account",
-    cant_delete_last_admin:"Cannot delete the last admin", temp_pw_sent:"Temporary password sent. The user will be asked to set a new password on sign-in."
+    cant_delete_last_admin:"Cannot delete the last admin", temp_pw_sent:"Temporary password sent. The user will be asked to set a new password on sign-in.",
+    nav_marketing:"Marketing", marketing_title:"Marketing Analytics", marketing_sub:"Lead distribution by source and campaign",
+    role_marketing:"Marketing", marketing_fields:"Marketing data (lead source)", marketing_readonly:"Marketing data is captured automatically from the source (Excel / API)",
+    mk_source:"Source", mk_campaign:"Campaign", mk_adset:"Adset", mk_ad:"Ad", mk_keyword:"Keyword", mk_term:"Term", mk_content:"Content",
+    select_field:"Select field to analyze", breakdown_by:"Breakdown by", cross_status:"Cross-tab with lead status",
+    no_marketing_data:"No marketing data to show", no_marketing_sub:"Leads imported from Excel or API with marketing data will appear here",
+    not_set:"Not set", total_in_field:"Distinct values", top_value:"Top value"
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -589,10 +609,11 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v5')) return;
+  if(DB.get('seeded_v7')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'Admin@123', role:'admin', locked:false, mustChangePw:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'Manager@123', role:'manager', locked:false, mustChangePw:false},
+    {id:'u_mkt',   name:'יעל רון',  email:'marketing@comda.co.il', pass:'Market@123', role:'marketing', locked:false, mustChangePw:false},
     {id:'u_rep1',  name:'נועה ברק', email:'noa@comda.co.il', pass:'Sales@123', role:'rep', locked:false, mustChangePw:false},
     {id:'u_rep2',  name:'איתי שגב', email:'itay@comda.co.il', pass:'Sales@123', role:'rep', locked:false, mustChangePw:false}
   ];
@@ -606,24 +627,27 @@ function seed(){
   const Y = new Date().getFullYear();
   const d = (m,day)=> new Date(Y,m,day).toISOString();
   const nameOf = id => { const u=users.find(x=>x.id===id); return u?u.name:null; };
-  const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[])=>(
-    {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+  const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[],mkt=null)=>(
+    {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,
+     marketing:mkt,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+  // demo marketing payloads (UTM-style)
+  const mkt=(source,campaign,adset,ad,keyword,term,content)=>({source,campaign,adset,ad,keyword,term,content});
   const M = new Date().getMonth(); // current month for some recent leads
   const leads = [
-    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_ctd','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}]),
-    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_nadlan','won','u_rep1',124000,'email',M,8),
-    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_wesign','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}]),
-    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_archive','progress','u_rep2',0,'excel',M,9),
-    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_ctd','won','u_rep2',56000,'email',Math.max(0,M-2),18),
-    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_nadlan','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}]),
-    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_notary','progress','u_rep1',0,'email',M,1),
-    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_archive','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22),
-    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_wesign','won','u_rep2',43000,'email',Math.max(0,M-1),10),
-    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_notary','lost','u_rep1',0,'email',M,11),
-    mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24),
-    mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26)
+    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_ctd','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}], mkt('Google','Q4-Search','CTD-Exact','ad-ctd-1','crm software','crm','headline-a')),
+    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_nadlan','won','u_rep1',124000,'email',M,8,[], mkt('Facebook','Nadlan-Launch','Realtors-25-45','ad-nadlan-vid','','','video-1')),
+    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_wesign','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}], mkt('Google','Q4-Search','Wesign-Broad','ad-wesign-2','digital signature','esign','headline-b')),
+    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_archive','progress','u_rep2',0,'excel',M,9,[], mkt('LinkedIn','Enterprise-ABM','IT-Managers','ad-archive-1','','','carousel-1')),
+    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_ctd','won','u_rep2',56000,'email',Math.max(0,M-2),18,[], mkt('Google','Q3-Search','CTD-Exact','ad-ctd-1','crm system','crm','headline-a')),
+    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_nadlan','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}], mkt('Facebook','Nadlan-Launch','Realtors-25-45','ad-nadlan-img','','','image-2')),
+    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_notary','progress','u_rep1',0,'email',M,1,[], mkt('Organic','','','','','','')),
+    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_archive','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22,[], mkt('LinkedIn','Enterprise-ABM','IT-Managers','ad-archive-2','','','carousel-2')),
+    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_wesign','won','u_rep2',43000,'email',Math.max(0,M-1),10,[], mkt('Google','Q3-Search','Wesign-Broad','ad-wesign-1','e signature','esign','headline-b')),
+    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_notary','lost','u_rep1',0,'email',M,11,[], mkt('Facebook','Notary-Promo','SMB-Owners','ad-notary-1','','','video-3')),
+    mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24,[], mkt('Google','Q4-Search','CTD-Exact','ad-ctd-2','crm software','crm','headline-c')),
+    mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26,[], mkt('Organic','','','','','',''))
   ];
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v5',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v7',true);
 }
 </script>
 
@@ -634,8 +658,12 @@ const ICON = {
   newleads:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
   reports:'<path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="7"/><rect x="12" y="6" width="3" height="11"/><rect x="17" y="13" width="3" height="4"/>',
   settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>',
+  marketing:'<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 11-5.8-1.6"/>',
 };
 const svg = (p,cls='') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+// Marketing fields captured from Excel/API (UTM-style). Order = display order.
+const MK_FIELDS=['source','campaign','adset','ad','keyword','term','content'];
+const MK_LABEL={source:'mk_source',campaign:'mk_campaign',adset:'mk_adset',ad:'mk_ad',keyword:'mk_keyword',term:'mk_term',content:'mk_content'};
 
 /* ---------- session ---------- */
 let SESSION = null;
@@ -643,9 +671,10 @@ function currentUser(){ const id=SESSION; return id?DB.get('users',[]).find(u=>u
 
 /* role capabilities */
 const CAP = {
-  admin:   {tabs:['leads','newleads','reports','settings'], delete:true, manageUsers:true, assign:true},
-  manager: {tabs:['leads','newleads','reports'],            delete:true, manageUsers:false, assign:true},
-  rep:     {tabs:['leads','newleads'],                      delete:false, manageUsers:false, assign:true}
+  admin:     {tabs:['leads','newleads','reports','marketing','settings'], delete:true, manageUsers:true, assign:true},
+  manager:   {tabs:['leads','newleads','reports','marketing'],            delete:true, manageUsers:false, assign:true},
+  rep:       {tabs:['leads','newleads'],                                  delete:false, manageUsers:false, assign:true},
+  marketing: {tabs:['marketing'],                                         delete:false, manageUsers:false, assign:false}
 };
 const can = c => { const u=currentUser(); return u?CAP[u.role][c]:false; };
 const myTabs = () => { const u=currentUser(); return u?CAP[u.role].tabs:[]; };
@@ -793,7 +822,7 @@ function inPeriod(iso,period){
 
 /* ---------- nav ---------- */
 let CURRENT='leads';
-const NAV=[{k:'leads',i:'leads'},{k:'newleads',i:'newleads'},{k:'reports',i:'reports'},{k:'settings',i:'settings'}];
+const NAV=[{k:'leads',i:'leads'},{k:'newleads',i:'newleads'},{k:'reports',i:'reports'},{k:'marketing',i:'marketing'},{k:'settings',i:'settings'}];
 function newLeadCount(){ return DB.get('leads',[]).filter(l=>l.status==='new'&&!l.owner).length; }
 function buildNav(){
   const tabs=myTabs();
@@ -814,7 +843,7 @@ function go(tab){
   document.getElementById('tabTitle').textContent=t('nav_'+tab);
   const fab=document.getElementById('fab');
   fab.classList.toggle('show', tab==='leads'||tab==='newleads');
-  ({leads:renderLeads,newleads:renderNewLeads,reports:renderReports,settings:renderSettings}[tab])();
+  ({leads:renderLeads,newleads:renderNewLeads,reports:renderReports,marketing:renderMarketing,settings:renderSettings}[tab])();
   window.scrollTo(0,0);
 }
 function onFab(){ if(CURRENT==='leads') openLeadModal(); else if(CURRENT==='newleads') openLeadModal(); }
@@ -1007,6 +1036,11 @@ function openLeadModal(id){
       ${canAssign?`<div class="field"><label>${t('owner')}</label><select id="m_owner">${ownerOpts}</select></div>`:`<input type="hidden" id="m_owner" value="${l.owner||''}">`}
       <div class="field"><label>${t('note')}</label><textarea id="m_note" placeholder="${LANG==='he'?'מה קרה בשיחה / השלב הבא…':'What happened / next step…'}"></textarea></div>
       ${!isNew?`<div class="field"><label>${t('notes')}</label><div class="notes">${notesHtml}</div></div>`:''}
+      ${(!isNew && l.marketing && MK_FIELDS.some(f=>l.marketing[f]))?`
+        <div class="mkt-block">
+          <div class="mkt-block-head">${svg(ICON.marketing)}<span>${t('marketing_fields')}</span></div>
+          ${MK_FIELDS.filter(f=>l.marketing[f]).map(f=>`<div class="mkt-row"><span>${t(MK_LABEL[f])}</span><b>${esc(l.marketing[f])}</b></div>`).join('')}
+        </div>`:''}
       ${!isNew?`<div class="leadid-row"><span>${t('lead_id')}</span><code>${esc(l.id)}</code></div>`:''}
     </div>
     <div class="modal-foot">
@@ -1159,7 +1193,70 @@ function renderReports(){
     options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'₪'+(v/1000)+'k',font},grid:{color:'#eef1f8'}},x:{ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
 }
 
-/* ---------- SETTINGS ---------- */
+/* ---------- MARKETING TAB ---------- */
+let MKT_FIELD='source';
+function setMktField(f){ MKT_FIELD=f; renderMarketing(); }
+function renderMarketing(){
+  const all=DB.get('leads',[]);
+  const withMkt=all.filter(l=>l.marketing && MK_FIELDS.some(f=>l.marketing[f]));
+
+  if(!withMkt.length){
+    document.getElementById('main').innerHTML=`
+      <div class="page-head"><div><h1 class="page-h1">${t('marketing_title')}</h1><p class="page-sub">${t('marketing_sub')}</p></div></div>
+      ${emptyState(t('no_marketing_data'),t('no_marketing_sub'),ICON.marketing)}`;
+    return;
+  }
+
+  const field=MKT_FIELD;
+  const val=l=> (l.marketing&&l.marketing[field]) ? l.marketing[field] : t('not_set');
+  // distinct values for the selected field (sorted by lead count desc)
+  const valueCounts=new Map();
+  withMkt.forEach(l=>{ const v=val(l); valueCounts.set(v,(valueCounts.get(v)||0)+1); });
+  const values=[...valueCounts.keys()].sort((a,b)=>valueCounts.get(b)-valueCounts.get(a));
+  const topVal=values[0];
+
+  const fieldBtns=MK_FIELDS.map(f=>`<button class="${field===f?'on':''}" onclick="setMktField('${f}')">${t(MK_LABEL[f])}</button>`).join('');
+
+  document.getElementById('main').innerHTML=`
+   <div class="page-head"><div><h1 class="page-h1">${t('marketing_title')}</h1><p class="page-sub">${t('marketing_sub')}</p></div></div>
+   <div class="stats-grid">
+     ${statCard(t('total_leads'),withMkt.length,'',ST_COLOR.new,ICON.marketing)}
+     ${statCard(t('total_in_field'),values.length,t(MK_LABEL[field]),'#9333ea','<path d="M4 7V4h16v3M9 20h6M12 4v16"/>')}
+     ${statCard(t('top_value'),esc(topVal),valueCounts.get(topVal)+' '+t('nav_leads'),ST_COLOR.won,'<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M9 21h6M12 15v6"/>')}
+   </div>
+   <div class="seg" style="margin-bottom:16px;flex-wrap:wrap">${fieldBtns}</div>
+   <div class="chart-box" style="margin-bottom:16px">
+     <div class="card-title">${t('breakdown_by')} ${t(MK_LABEL[field])}</div>
+     <div class="chart-canvas-wrap" style="height:${Math.max(220,values.length*34+40)}px"><canvas id="chMktDist"></canvas></div>
+   </div>
+   <div class="chart-box">
+     <div class="card-title">${t('cross_status')} · ${t(MK_LABEL[field])}</div>
+     <div class="chart-canvas-wrap" style="height:${Math.max(240,values.length*40+60)}px"><canvas id="chMktCross"></canvas></div>
+   </div>`;
+
+  CH.forEach(c=>c.destroy()); CH=[];
+  const font={family:LANG==='he'?'Heebo':'Sora'};
+  Chart.defaults.font.family=font.family;
+  const rtl=LANG==='he';
+
+  // 1) distribution by selected field (horizontal bar)
+  CH.push(new Chart(document.getElementById('chMktDist'),{type:'bar',
+    data:{labels:values,datasets:[{data:values.map(v=>valueCounts.get(v)),backgroundColor:values.map((v,i)=>PROD_COLORS[i%PROD_COLORS.length]),borderRadius:7,maxBarThickness:28}]},
+    options:{indexAxis:'y',plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{precision:0,font},grid:{color:'#eef1f8'}},y:{ticks:{font},grid:{display:false},reverse:false}},maintainAspectRatio:false}}));
+
+  // 2) cross-tab: count of leads by field value, stacked by status (default per user choice)
+  const datasets=STATUSES.map(s=>({
+    label:t(ST_KEY[s]),
+    data:values.map(v=>withMkt.filter(l=>val(l)===v && l.status===s).length),
+    backgroundColor:ST_COLOR[s],borderRadius:4,maxBarThickness:34
+  }));
+  CH.push(new Chart(document.getElementById('chMktCross'),{type:'bar',
+    data:{labels:values,datasets},
+    options:{indexAxis:'y',plugins:{legend:{position:'top',labels:{boxWidth:12,padding:12,font}}},
+      scales:{x:{stacked:true,beginAtZero:true,ticks:{precision:0,font},grid:{color:'#eef1f8'}},
+              y:{stacked:true,ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
+}
 function renderSettings(){
   const users=DB.get('users',[]);
   document.getElementById('main').innerHTML=`
@@ -1289,7 +1386,7 @@ function openUserModal(){
      <div class="field"><label>${t('password')}</label><input id="u_pass" type="password" placeholder="••••••••" oninput="pwChecklistUpdate('uu',this.value)"></div>
      ${pwChecklist('uu')}
      <div class="field" style="margin-top:12px"><label>${t('role')}</label><select id="u_role">
-       <option value="rep">${t('role_rep')}</option><option value="manager">${t('role_manager')}</option><option value="admin">${t('role_admin')}</option></select></div>
+       <option value="rep">${t('role_rep')}</option><option value="marketing">${t('role_marketing')}</option><option value="manager">${t('role_manager')}</option><option value="admin">${t('role_admin')}</option></select></div>
    </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveUser()">${t('save')}</button></div></div>`);
 }
 function saveUser(){
@@ -1360,21 +1457,25 @@ function saveOwnPw(){
 
 /* ---------- Excel template download (item 8) ---------- */
 function downloadTemplate(){
-  const headers = LANG==='he'
+  const base = LANG==='he'
     ? ['שם מלא','אימייל','טלפון','חברה','סוג מוצר','איש מכירות אחראי','סטטוס','סכום עסקה']
     : ['Full Name','Email','Phone','Company','Product Type','Sales Rep','Status','Deal Amount'];
+  // Marketing columns (UTM-style) — same headers in both languages
+  const mktCols=['Source','Campaign','Adset','Ad','Keyword','Term','Content'];
+  const headers=[...base,...mktCols];
   const prodExample = (DB.get('products',[])[0]||{}).name || 'CTD';
-  // pick two real rep names from the system if available (so the import matches them)
   const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
   const rep1=(reps[0]||{}).name || (LANG==='he'?'נועה ברק':'Noa Barak');
   const rep2=(reps[1]||{}).name || (LANG==='he'?'איתי שגב':'Itay Segev');
+  const mkt1=['Google','Q4-Search','CTD-Exact','ad-ctd-1','crm software','crm','headline-a'];
+  const mkt2=['Facebook','Nadlan-Launch','Realtors-25-45','ad-nadlan-vid','','','video-1'];
   const examples = LANG==='he'
-    ? [['ישראל ישראלי','israel@example.com','050-1234567','Example Ltd',prodExample,rep1,'בטיפול','0'],
-       ['דנה כהן','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'זכייה','75000']]
-    : [['John Doe','john@example.com','050-1234567','Example Ltd',prodExample,rep1,'In Progress','0'],
-       ['Dana Cohen','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'Won','75000']];
+    ? [['ישראל ישראלי','israel@example.com','050-1234567','Example Ltd',prodExample,rep1,'בטיפול','0',...mkt1],
+       ['דנה כהן','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'זכייה','75000',...mkt2]]
+    : [['John Doe','john@example.com','050-1234567','Example Ltd',prodExample,rep1,'In Progress','0',...mkt1],
+       ['Dana Cohen','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'Won','75000',...mkt2]];
   const ws=XLSX.utils.aoa_to_sheet([headers, ...examples]);
-  ws['!cols']=headers.map(()=>({wch:18}));
+  ws['!cols']=headers.map(()=>({wch:16}));
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Leads');
   XLSX.writeFile(wb,'COMDA_leads_template.xlsx');
 }
@@ -1403,6 +1504,11 @@ function handleXlsx(file){
         const u=users.find(x=>x.name.toLowerCase()===lv || x.email.toLowerCase()===lv);
         if(u) return {owner:u.id, ownerName:u.name};
         return {owner:null, ownerName:v}; }; // kept as historical name (shown as inactive)
+      // marketing columns use EXACT header match (so 'Ad' doesn't collide with 'Adset')
+      const exact=(o,key)=>{ for(const k of Object.keys(o)){ if(k.toString().trim().toLowerCase()===key) return o[k]; } return ''; };
+      const readMarketing=row=>{ const m={}; let has=false;
+        MK_FIELDS.forEach(f=>{ const v=(exact(row,f)||'').toString().trim(); m[f]=v; if(v) has=true; });
+        return has? m : null; };
       const leads=DB.get('leads',[]); let n=0;
       rows.forEach(row=>{
         const name=pick(row,['שם','name','full']); if(!name) return;
@@ -1410,11 +1516,12 @@ function handleXlsx(file){
         const product=resolveProduct(pick(row,['מוצר','product']));
         const rep=resolveRep(pick(row,['איש מכירות','אחראי','מכירות','sales rep','owner','rep']));
         const amount=parseInt(pick(row,['amount','סכום','value']))||0;
+        const marketing=readMarketing(row);
         // Closed leads (won/lost/cancelled) are historical: keep their status & owner name as-is.
         // Active leads (new/progress) keep their parsed status too — nothing is forced to "new".
         leads.push({id:guid(),name:name.toString(),email:pick(row,['mail','אימייל','מייל']).toString(),
           phone:pick(row,['phone','טלפון','נייד']).toString(),company:pick(row,['company','חברה']).toString(),
-          product, status, amount, owner:rep.owner, ownerName:rep.ownerName, source:'excel',
+          product, status, amount, owner:rep.owner, ownerName:rep.ownerName, marketing, source:'excel',
           createdAt:now(),updatedAt:now(),notes:[]}); n++;
       });
       DB.set('users',users); DB.set('products',products); DB.set('leads',leads); buildNav();
