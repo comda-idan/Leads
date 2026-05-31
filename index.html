@@ -362,7 +362,6 @@ code.api{background:#fff;border:1px solid var(--border);padding:2px 7px;border-r
 @media(max-width:400px){
   .stat-val{font-size:19px;}
   td,th{padding-inline:8px;}
-  th.col-product,td.col-product{display:none;}
   /* on very small screens also collapse contact column wrapping */
   .linklike{font-size:11.5px;}
 }
@@ -611,7 +610,7 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v7')) return;
+  if(DB.get('seeded_v8')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'Admin@123', role:'admin', locked:false, mustChangePw:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'Manager@123', role:'manager', locked:false, mustChangePw:false},
@@ -634,22 +633,48 @@ function seed(){
      marketing:mkt,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
   // demo marketing payloads (UTM-style)
   const mkt=(source,campaign,adset,ad,keyword,term,content)=>({source,campaign,adset,ad,keyword,term,content});
-  const M = new Date().getMonth(); // current month for some recent leads
-  const leads = [
-    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_ctd','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}], mkt('Google','Q4-Search','CTD-Exact','ad-ctd-1','crm software','crm','headline-a')),
-    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_nadlan','won','u_rep1',124000,'email',M,8,[], mkt('Facebook','Nadlan-Launch','Realtors-25-45','ad-nadlan-vid','','','video-1')),
-    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_wesign','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}], mkt('Google','Q4-Search','Wesign-Broad','ad-wesign-2','digital signature','esign','headline-b')),
-    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_archive','progress','u_rep2',0,'excel',M,9,[], mkt('LinkedIn','Enterprise-ABM','IT-Managers','ad-archive-1','','','carousel-1')),
-    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_ctd','won','u_rep2',56000,'email',Math.max(0,M-2),18,[], mkt('Google','Q3-Search','CTD-Exact','ad-ctd-1','crm system','crm','headline-a')),
-    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_nadlan','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}], mkt('Facebook','Nadlan-Launch','Realtors-25-45','ad-nadlan-img','','','image-2')),
-    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_notary','progress','u_rep1',0,'email',M,1,[], mkt('Organic','','','','','','')),
-    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_archive','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22,[], mkt('LinkedIn','Enterprise-ABM','IT-Managers','ad-archive-2','','','carousel-2')),
-    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_wesign','won','u_rep2',43000,'email',Math.max(0,M-1),10,[], mkt('Google','Q3-Search','Wesign-Broad','ad-wesign-1','e signature','esign','headline-b')),
-    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_notary','lost','u_rep1',0,'email',M,11,[], mkt('Facebook','Notary-Promo','SMB-Owners','ad-notary-1','','','video-3')),
-    mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24,[], mkt('Google','Q4-Search','CTD-Exact','ad-ctd-2','crm software','crm','headline-c')),
-    mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26,[], mkt('Organic','','','','','',''))
+  const M = new Date().getMonth(); // current month
+  // ---- generate ~50 demo leads with varied statuses, products, owners and marketing ----
+  const firsts=['יוסי','שרה','אבי','רונית','משה','דנה','עומר','ליאת','גיל','תמר','רן','נטע','אורי','מיכל','עידו','הילה','דור','שירה','אסף','קרן','יואב','נועם','ענת','גל','רותם','בר','איל','מאי','טל','ליאור'];
+  const lasts=['אברהם','דהן','מזרחי','פלד','לוין','כספי','טל','שרון','נחום','ביטון','הראל','ברקת','שביט','אלון','גבאי','רוזן','כהן','פרץ','אדרי','מור'];
+  const companies=['TechWave','Medix','BuildPro','GreenFields','FinLogic','RetailX','CloudNine','DataCore','AutoFlow','FinEdge','NextStep','SmartEdge','UrbanNest','BlueOcean','Vertex','Lumino','CoreBit','Skyline','NovaSoft','PrimeGate','Orbit','Cascade','Pivot','Quantia','Mosaic'];
+  const prodIds=products.map(p=>p.id);
+  const repIds=['u_rep1','u_rep2'];
+  const sources=['Google','Facebook','LinkedIn','Organic','Instagram'];
+  const campaignBy={Google:'Q4-Search',Facebook:'Nadlan-Launch',LinkedIn:'Enterprise-ABM',Organic:'',Instagram:'Awareness'};
+  const statusPlan=[ // ~50 leads, weighted mix
+    ...Array(18).fill('won'),
+    ...Array(14).fill('progress'),
+    ...Array(7).fill('lost'),
+    ...Array(4).fill('cancelled'),
+    ...Array(7).fill('new')
   ];
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v7',true);
+  // pseudo-random but deterministic
+  let _s=12345; const rnd=()=>{ _s=(_s*1103515245+12345)&0x7fffffff; return _s/0x7fffffff; };
+  const pick=arr=>arr[Math.floor(rnd()*arr.length)];
+  // won amounts centered so the average completed deal is ~₪8,000
+  const wonAmount=()=>{ const r=rnd(); let a; if(r<0.80) a=3000+rnd()*8000; else if(r<0.95) a=11000+rnd()*5000; else a=16000+rnd()*9000; return Math.round(a/100)*100; };
+  const leads=[];
+  for(let i=0;i<50;i++){
+    const status=statusPlan[i]||'progress';
+    const closed=status==='won'||status==='lost'||status==='cancelled';
+    const owner = status==='new' ? null : pick(repIds);
+    const product = status==='new' && rnd()<0.4 ? null : pick(prodIds);
+    const amount = status==='won' ? wonAmount() : 0;
+    const src=pick(sources);
+    const month = Math.max(0, M - Math.floor(rnd()*6)); // spread over last ~6 months of this year
+    const day = 1+Math.floor(rnd()*26);
+    const fn=pick(firsts), ln=pick(lasts), co=pick(companies);
+    const email=`lead${i+1}@${co.toLowerCase()}.co.il`;
+    const phone='05'+pick(['0','2','3','4','8'])+'-'+(1000000+Math.floor(rnd()*8999999));
+    const marketing=mkt(src, campaignBy[src]||'', src==='Organic'?'':pick(['Set-A','Set-B','Set-C']),
+      src==='Organic'?'':'ad-'+(1+Math.floor(rnd()*9)),
+      src==='Google'?pick(['crm software','digital signature','notary online','archive system']):'',
+      src==='Google'?pick(['crm','esign','notary']):'',
+      pick(['headline-a','headline-b','video-1','image-2','carousel-1']));
+    leads.push(mk(fn+' '+ln,email,phone,co,product,status,owner,amount,rnd()<0.5?'email':'excel',month,day,[],marketing));
+  }
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v8',true);
 }
 </script>
 
@@ -964,8 +989,8 @@ function statCard(label,val,sub,color,ico){
 
 function leadsTable(rows){
   const showOwner = currentUser().role!=='rep';
-  const head=`<tr><th>${t('col_customer')}</th><th>${t('col_contact')}</th><th class="col-product">${t('col_product')}</th><th>${t('col_status')}</th>
-    <th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-updated">${t('col_updated')}</th></tr>`;
+  const head=`<tr><th>${t('col_customer')}</th><th>${t('col_contact')}</th><th>${t('col_status')}</th>
+    <th class="col-product">${t('col_product')}</th><th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-updated">${t('col_updated')}</th></tr>`;
   const body=rows.map(l=>{
     const mail=l.email?`<a class="linklike" href="mailto:${l.email}" onclick="event.stopPropagation()">${l.email}</a>`:'';
     const tel=l.phone?contactPhone(l.phone):'';
@@ -973,8 +998,8 @@ function leadsTable(rows){
     return `<tr onclick="openLeadModal('${l.id}')">
       <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
       <td>${mail}${tel}</td>
-      <td class="col-product">${prod}</td>
       <td><span class="badge ${ST_BADGE[l.status]}">${t(ST_KEY[l.status])}</span></td>
+      <td class="col-product">${prod}</td>
       <td>${l.status==='won'&&l.amount?`<span class="amount">${fmtIls(l.amount)}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
       ${showOwner?`<td>${ownerCell(l)}</td>`:''}
       <td class="col-updated" style="color:var(--text-soft);white-space:nowrap">${fmtDate(l.updatedAt)}</td></tr>`;
@@ -1101,14 +1126,17 @@ function renderNewLeads(){
    ${apiHelpBox()}
    ${news.length? `<div class="table-wrap"><table><thead><tr>
       <th>${t('col_customer')}</th><th>${t('col_contact')}</th><th class="col-product">${t('col_product')}</th><th>${t('source')}</th><th>${t('assign_to')}</th></tr></thead>
-      <tbody>${news.map(l=>`<tr>
+      <tbody>${news.map(l=>{
+        const srcVal=(l.marketing&&l.marketing.source)?l.marketing.source
+          :(l.source==='excel'?'Excel':l.source==='manual'?'Manual':l.source==='email'?'Email':t('not_set'));
+        return `<tr onclick="openLeadModal('${l.id}')" style="cursor:pointer">
         <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
-        <td>${l.email?`<a class="linklike" href="mailto:${l.email}">${l.email}</a>`:''}${l.phone?contactPhone(l.phone):''}</td>
+        <td>${l.email?`<a class="linklike" href="mailto:${l.email}" onclick="event.stopPropagation()">${l.email}</a>`:''}${l.phone?contactPhone(l.phone):''}</td>
         <td class="col-product">${l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
-        <td><span style="font-size:12px;color:var(--text-soft)">${l.source==='email'?'📧 Email':l.source==='excel'?'📄 Excel':'✏️ Manual'}</span></td>
-        <td><select onchange="assignLead('${l.id}',this.value)" style="padding:9px 12px;min-width:170px">
+        <td><span class="prodtag" style="background:rgba(45,108,223,.10);color:var(--blue)">${esc(srcVal)}</span></td>
+        <td><select onclick="event.stopPropagation()" onchange="assignLead('${l.id}',this.value)" style="padding:9px 12px;min-width:170px">
           <option value="">${t('select_rep')}</option>
-          ${reps.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td></tr>`).join('')}
+          ${reps.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('')}</select></td></tr>`;}).join('')}
       </tbody></table></div>`
      : emptyState(t('no_new'),t('no_new_sub'),ICON.newleads)}`;
 }
