@@ -182,6 +182,8 @@ tbody tr:hover{background:var(--surface-2);}
 .prod-list{display:flex;flex-direction:column;gap:8px;}
 .prod-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);
   border:1px solid var(--border-soft);border-radius:11px;}
+.inactive-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--gray);background:var(--gray-bg);
+  padding:1px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.02em;margin-inline-start:4px;}
 
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:30px;font-size:12px;font-weight:700;white-space:nowrap;}
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -473,7 +475,12 @@ const I18N = {
     change_pw:"שינוי סיסמה", current_pw:"סיסמה נוכחית", new_pw:"סיסמה חדשה", confirm_pw:"אימות סיסמה חדשה",
     pw_changed:"הסיסמה שונתה בהצלחה", pw_wrong_current:"הסיסמה הנוכחית שגויה", pw_mismatch:"הסיסמאות אינן תואמות", pw_short:"הסיסמה חייבת לפחות 4 תווים",
     lead_id:"מזהה ליד", download_template:"הורד קובץ אקסל לדוגמה", template_hint:"השורה הראשונה היא כותרות. מלאו שורה אחת לכל ליד.",
-    import_cols:"עמודות הקובץ: שם מלא, אימייל, טלפון, חברה, סוג מוצר, סטטוס, סכום עסקה"
+    import_cols:"עמודות הקובץ: שם מלא, אימייל, טלפון, חברה, סוג מוצר, איש מכירות אחראי, סטטוס, סכום עסקה",
+    all_owners:"כל אנשי המכירות", inactive_user:"לא פעיל", search_owner:"כולל חיפוש לפי איש מכירות",
+    del_user_title:"מחיקת איש מכירות", del_user_active:"לאיש מכירות זה יש לידים פעילים. בחרו לאן להעביר אותם לפני המחיקה:",
+    del_user_none:"אין לאיש המכירות לידים פעילים. הלידים הסגורים יישמרו עם שמו.",
+    reassign_to:"העברת הלידים הפעילים אל", move_to_new:"החזרה ל\"לידים חדשים\" (לא משויך)", confirm_delete:"מחק והעבר",
+    user_deleted:"איש המכירות נמחק והלידים הפעילים הועברו", closed_kept:"לידים סגורים נשמרו בהיסטוריה"
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -515,7 +522,12 @@ const I18N = {
     change_pw:"Change password", current_pw:"Current password", new_pw:"New password", confirm_pw:"Confirm new password",
     pw_changed:"Password changed", pw_wrong_current:"Current password is incorrect", pw_mismatch:"Passwords do not match", pw_short:"Password must be at least 4 characters",
     lead_id:"Lead ID", download_template:"Download Excel template", template_hint:"First row is headers. Add one row per lead.",
-    import_cols:"File columns: full name, email, phone, company, product type, status, deal amount"
+    import_cols:"File columns: full name, email, phone, company, product type, sales rep, status, deal amount",
+    all_owners:"All sales reps", inactive_user:"inactive", search_owner:"incl. search by rep",
+    del_user_title:"Delete sales rep", del_user_active:"This rep has active leads. Choose where to move them before deleting:",
+    del_user_none:"This rep has no active leads. Closed leads will keep their name.",
+    reassign_to:"Move active leads to", move_to_new:"Return to \"New Leads\" (unassigned)", confirm_delete:"Delete & move",
+    user_deleted:"Sales rep deleted and active leads reassigned", closed_kept:"Closed leads kept in history"
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -534,7 +546,7 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v2')) return;
+  if(DB.get('seeded_v3')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'admin123', role:'admin', locked:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'manager123', role:'manager', locked:false},
@@ -549,8 +561,9 @@ function seed(){
   ];
   const Y = new Date().getFullYear();
   const d = (m,day)=> new Date(Y,m,day).toISOString();
+  const nameOf = id => { const u=users.find(x=>x.id===id); return u?u.name:null; };
   const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[])=>(
-    {id:guid(),name,email,phone,company,product,status,owner,amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+    {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
   const M = new Date().getMonth(); // current month for some recent leads
   const leads = [
     mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_crm','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}]),
@@ -566,7 +579,7 @@ function seed(){
     mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24),
     mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26)
   ];
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v2',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v3',true);
 }
 </script>
 
@@ -669,6 +682,9 @@ async function passkeyLogin(){
 <script>
 /* ---------- status meta ---------- */
 const STATUSES=['new','progress','won','lost','cancelled'];
+const ACTIVE_ST=['new','progress'];      // active leads need an owner who keeps working them
+const CLOSED_ST=['won','lost','cancelled']; // historical — owner name is frozen
+const isActive = l => ACTIVE_ST.includes(l.status);
 const ST_KEY={new:'st_new',progress:'st_progress',won:'st_won',lost:'st_lost',cancelled:'st_cancelled'};
 const ST_BADGE={new:'b-new',progress:'b-progress',won:'b-won',lost:'b-lost',cancelled:'b-cancelled'};
 const ST_COLOR={new:'#2d6cdf',progress:'#d98a00',won:'#1aa260',lost:'#d9342b',cancelled:'#7a8499'};
@@ -676,6 +692,15 @@ const fmtIls = n => '₪'+(n||0).toLocaleString('en-US');
 const fmtDate = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short'}); };
 const quarterOf = iso => Math.floor(new Date(iso).getMonth()/3)+1;
 const userName = id => { const u=DB.get('users',[]).find(x=>x.id===id); return u?u.name:t('unassigned'); };
+// Resolve the owner label for a lead: prefer the current user's live name; if that
+// user was deleted, fall back to the historical ownerName snapshot stored on the lead.
+function ownerLabel(l){
+  if(!l.owner && !l.ownerName) return null;
+  const u=DB.get('users',[]).find(x=>x.id===l.owner);
+  if(u) return {name:u.name, active:true};
+  if(l.ownerName) return {name:l.ownerName, active:false};
+  return null;
+}
 const productName = id => { if(!id) return t('no_product'); const p=DB.get('products',[]).find(x=>x.id===id); return p?p.name:t('no_product'); };
 const PROD_COLORS=['#4252A4','#ED1C24','#1aa260','#d98a00','#2d6cdf','#9333ea','#0891b2','#db2777','#65a30d','#ea580c'];
 // period helpers: 'month' | 'quarter' | 'year' — relative to "now"
@@ -725,13 +750,38 @@ function visibleLeads(){
 /* ---------- LEADS TAB ---------- */
 let leadFilters=new Set(['progress']); // default
 let leadProductFilter=''; // '' = all
+let leadOwnerFilter=''; // '' = all; otherwise owner id, or 'name:<frozen name>' for deleted users
 let leadSearch='';
+// Distinct owners that actually appear on leads (managers see this list). Includes
+// people who were deleted — represented by their frozen ownerName.
+function ownersInLeads(){
+  const all=DB.get('leads',[]); const users=DB.get('users',[]);
+  const map=new Map(); // key -> {key,name,active}
+  all.forEach(l=>{
+    if(l.owner){ const u=users.find(x=>x.id===l.owner);
+      if(u) map.set('id:'+u.id,{key:'id:'+u.id,name:u.name,active:true});
+      else if(l.ownerName) map.set('name:'+l.ownerName,{key:'name:'+l.ownerName,name:l.ownerName,active:false});
+    } else if(l.ownerName){ // owner id cleared but name frozen (deleted user, closed lead)
+      map.set('name:'+l.ownerName,{key:'name:'+l.ownerName,name:l.ownerName,active:false});
+    }
+  });
+  return [...map.values()].sort((a,b)=>a.name.localeCompare(b.name));
+}
+function ownerMatchesFilter(l){
+  if(!leadOwnerFilter) return true;
+  if(leadOwnerFilter.startsWith('id:')) return l.owner===leadOwnerFilter.slice(3);
+  if(leadOwnerFilter.startsWith('name:')){ const nm=leadOwnerFilter.slice(5);
+    const lbl=ownerLabel(l); return lbl && lbl.name===nm && !lbl.active; }
+  return true;
+}
 function computeLeadRows(){
   const all=visibleLeads();
   let rows=all.filter(l=>leadFilters.has(l.status));
   if(leadProductFilter){ rows=rows.filter(l=> leadProductFilter==='__none__' ? !l.product : (l.product||'')===leadProductFilter); }
+  rows=rows.filter(ownerMatchesFilter);
   if(leadSearch){ const q=leadSearch.toLowerCase();
-    rows=rows.filter(l=>[l.name,l.company,l.email,l.phone,productName(l.product)].some(v=>(v||'').toLowerCase().includes(q))); }
+    rows=rows.filter(l=>{ const own=ownerLabel(l); 
+      return [l.name,l.company,l.email,l.phone,productName(l.product),own?own.name:''].some(v=>(v||'').toLowerCase().includes(q)); }); }
   rows.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
   return rows;
 }
@@ -751,6 +801,9 @@ function renderLeads(){
   const prodOptions = `<option value="">${LANG==='he'?'כל המוצרים':'All products'}</option>`+
     products.map(p=>`<option value="${p.id}" ${leadProductFilter===p.id?'selected':''}>${esc(p.name)}</option>`).join('')+
     `<option value="__none__" ${leadProductFilter==='__none__'?'selected':''}>${t('no_product')}</option>`;
+  const showOwnerFilter = currentUser().role!=='rep';
+  const ownerOptions = `<option value="">${t('all_owners')}</option>`+
+    ownersInLeads().map(o=>`<option value="${esc(o.key)}" ${leadOwnerFilter===o.key?'selected':''}>${esc(o.name)}${o.active?'':' · '+t('inactive_user')}</option>`).join('');
 
   document.getElementById('main').innerHTML=`
   <div class="page-head">
@@ -767,6 +820,7 @@ function renderLeads(){
     <div class="search-box">${svg('<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>')}
       <input id="leadSearch" placeholder="${t('search')}" value="${leadSearch}"></div>
     <select id="leadProdFilter" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);min-width:150px" onchange="leadProductFilter=this.value;updateLeadResults()">${prodOptions}</select>
+    ${showOwnerFilter?`<select id="leadOwnerFilter" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);min-width:160px" onchange="leadOwnerFilter=this.value;updateLeadResults()">${ownerOptions}</select>`:''}
   </div>
   <div class="chips" style="margin-bottom:14px">${chips}
     <button class="chip" onclick="leadFilters=new Set(STATUSES);renderLeads()">${t('show_all')}</button></div>
@@ -809,10 +863,15 @@ function leadsTable(rows){
       <td class="col-product">${prod}</td>
       <td><span class="badge ${ST_BADGE[l.status]}">${t(ST_KEY[l.status])}</span></td>
       <td>${l.status==='won'&&l.amount?`<span class="amount">${fmtIls(l.amount)}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
-      ${showOwner?`<td>${l.owner?esc(userName(l.owner)):'<span style="color:var(--text-faint)">'+t('unassigned')+'</span>'}</td>`:''}
+      ${showOwner?`<td>${ownerCell(l)}</td>`:''}
       <td class="col-updated" style="color:var(--text-soft);white-space:nowrap">${fmtDate(l.updatedAt)}</td></tr>`;
   }).join('');
   return `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
+}
+function ownerCell(l){
+  const o=ownerLabel(l);
+  if(!o) return '<span style="color:var(--text-faint)">'+t('unassigned')+'</span>';
+  return esc(o.name)+(o.active?'':` <span class="inactive-tag">${t('inactive_user')}</span>`);
 }
 function emptyState(h,s,ico){ return `<div class="card"><div class="empty">${svg(ico)}<h3>${h}</h3><p>${s}</p></div></div>`; }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -877,17 +936,20 @@ function saveLead(){
   const amount=parseInt(document.getElementById('m_amount')?.value||0)||0;
   if(status==='won'&&amount<=0){ toast(t('req_amount'),false); return; }
   const owner=document.getElementById('m_owner').value||null;
+  const ownerName=owner?(DB.get('users',[]).find(u=>u.id===owner)||{}).name||null:null;
   const product=document.getElementById('m_product').value||null;
   const noteTxt=document.getElementById('m_note').value.trim();
   const leads=DB.get('leads',[]);
   if(EDIT_ID){
     const l=leads.find(x=>x.id===EDIT_ID); // id (GUID) is never modified
+    // keep the previous frozen name if owner is being cleared, so closed-lead history isn't lost
+    const keptName = owner? ownerName : (l.ownerName||null);
     Object.assign(l,{name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
-      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,updatedAt:now()});
+      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,ownerName:keptName,updatedAt:now()});
     if(noteTxt){ l.notes=l.notes||[]; l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
   }else{
     leads.push({id:guid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
-      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,source:'manual',
+      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,ownerName,source:'manual',
       createdAt:now(),updatedAt:now(),notes:noteTxt?[{text:noteTxt,at:now(),by:currentUser().name}]:[]});
   }
   DB.set('leads',leads); closeModal(); buildNav();
@@ -925,7 +987,7 @@ function renderNewLeads(){
 function assignLead(id,owner){
   if(!owner) return;
   const leads=DB.get('leads',[]); const l=leads.find(x=>x.id===id);
-  l.owner=owner; l.status='progress'; l.updatedAt=now();
+  l.owner=owner; l.ownerName=userName(owner); l.status='progress'; l.updatedAt=now();
   l.notes=l.notes||[]; l.notes.push({text:(LANG==='he'?'הליד שויך ל-':'Assigned to ')+userName(owner),at:now(),by:currentUser().name});
   DB.set('leads',leads); buildNav(); toast(t('assigned'),true); renderNewLeads();
 }
@@ -994,10 +1056,17 @@ function renderReports(){
     data:{labels:prodLabels,datasets:[{data:prodData,backgroundColor:prodColors,borderWidth:0,hoverOffset:6}]},
     options:{cutout:'62%',plugins:{legend:{position:LANG==='he'?'right':'left',labels:{boxWidth:12,padding:12,font}}},maintainAspectRatio:false}}));
 
-  // sales by rep (period, by won amount)
-  const repWon=reps.map(u=>won.filter(l=>l.owner===u.id).reduce((s,l)=>s+(l.amount||0),0));
+  // sales by rep (period, by won amount) — grouped by the name stored on each lead,
+  // so reps who have since left the company are still represented in history.
+  const repAgg=new Map(); // name -> {amount, active}
+  won.forEach(l=>{ const o=ownerLabel(l); const nm=o?o.name:t('unassigned');
+    const cur=repAgg.get(nm)||{amount:0,active:o?o.active:true}; cur.amount+=(l.amount||0); if(o&&!o.active)cur.active=false; repAgg.set(nm,cur); });
+  const repEntries=[...repAgg.entries()].sort((a,b)=>b[1].amount-a[1].amount);
+  const repLabels=repEntries.map(([nm,v])=>nm+(v.active?'':' ('+t('inactive_user')+')'));
+  const repData=repEntries.map(([,v])=>v.amount);
+  const repColors=repEntries.map(([,v])=>v.active?'#4252A4':'#9aa3b8');
   CH.push(new Chart(document.getElementById('chRep'),{type:'bar',
-    data:{labels:reps.map(u=>u.name),datasets:[{data:repWon,backgroundColor:'#4252A4',borderRadius:8,maxBarThickness:60}]},
+    data:{labels:repLabels,datasets:[{data:repData,backgroundColor:repColors,borderRadius:8,maxBarThickness:60}]},
     options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'₪'+(v/1000)+'k',font},grid:{color:'#eef1f8'}},x:{ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
 }
 
@@ -1055,7 +1124,57 @@ function resetPw(id){ const u=DB.get('users',[]).find(x=>x.id===id);
   const tmp='Cmd'+Math.random().toString(36).slice(2,7); const users=DB.get('users',[]); users.find(x=>x.id===id).pass=tmp; DB.set('users',users);
   toast(t('pw_temp')+tmp,true); }
 function toggleLock(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); u.locked=!u.locked; DB.set('users',users); renderSettings(); }
-function delUser(id){ if(!confirm(t('confirm_del'))) return; DB.set('users',DB.get('users',[]).filter(u=>u.id!==id)); renderSettings(); }
+function delUser(id){
+  const user=DB.get('users',[]).find(u=>u.id===id); if(!user) return;
+  const leads=DB.get('leads',[]);
+  const activeLeads=leads.filter(l=>l.owner===id && isActive(l));
+  const closedCount=leads.filter(l=>l.owner===id && !isActive(l)).length;
+
+  // Build the destination options: other reps/managers + "return to New Leads"
+  const others=DB.get('users',[]).filter(u=>u.id!==id && u.role!=='admin');
+  const destOpts=`<option value="__new__">${t('move_to_new')}</option>`+
+    others.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
+
+  if(activeLeads.length===0){
+    // nothing active to move — just confirm; closed leads keep their frozen name
+    openModal(`<div class="modal" style="max-width:440px">
+      <div class="modal-head"><div><h2>${t('del_user_title')}</h2><p>${esc(user.name)}</p></div>
+        <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
+      <div class="modal-body">
+        <p style="font-size:14px;color:var(--text-soft);margin-bottom:6px">${t('del_user_none')}</p>
+        ${closedCount?`<div class="helpbox" style="margin:0">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<div>${closedCount} ${t('closed_kept')}</div></div>`:''}
+      </div>
+      <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+        <button class="btn btn-danger" onclick="confirmDelUser('${id}','__new__')">${t('delete')}</button></div></div>`);
+    return;
+  }
+
+  openModal(`<div class="modal" style="max-width:460px">
+    <div class="modal-head"><div><h2>${t('del_user_title')}</h2><p>${esc(user.name)}</p></div>
+      <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px">${t('del_user_active')}</p>
+      <div class="helpbox" style="margin:0 0 14px">${svg('<path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>')}
+        <div><strong>${activeLeads.length}</strong> ${LANG==='he'?'לידים פעילים יועברו':'active leads will be moved'}${closedCount?` · <strong>${closedCount}</strong> ${t('closed_kept')}`:''}</div></div>
+      <div class="field"><label>${t('reassign_to')}</label><select id="del_dest">${destOpts}</select></div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-danger" onclick="confirmDelUser('${id}', document.getElementById('del_dest').value)">${t('confirm_delete')}</button></div></div>`);
+}
+function confirmDelUser(id,dest){
+  const leads=DB.get('leads',[]);
+  leads.forEach(l=>{
+    if(l.owner!==id) return;
+    if(isActive(l)){
+      if(dest==='__new__'){ l.owner=null; l.ownerName=null; l.status='new'; l.updatedAt=now(); }
+      else { l.owner=dest; l.ownerName=userName(dest); l.updatedAt=now(); }
+    }
+    // closed leads: leave owner id as-is; ownerName already frozen so history survives deletion
+  });
+  DB.set('leads',leads);
+  DB.set('users',DB.get('users',[]).filter(u=>u.id!==id));
+  closeModal(); buildNav(); toast(t('user_deleted'),true); renderSettings();
+}
 function openUserModal(){
   openModal(`<div class="modal"><div class="modal-head"><div><h2>${t('add_user')}</h2></div>
     <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
@@ -1134,13 +1253,19 @@ function saveOwnPw(){
 /* ---------- Excel template download (item 8) ---------- */
 function downloadTemplate(){
   const headers = LANG==='he'
-    ? ['שם מלא','אימייל','טלפון','חברה','סוג מוצר','סטטוס','סכום עסקה']
-    : ['Full Name','Email','Phone','Company','Product Type','Status','Deal Amount'];
-  const prodExample = (DB.get('products',[])[0]||{}).name || (LANG==='he'?'CRM Platform':'CRM Platform');
-  const example = LANG==='he'
-    ? ['ישראל ישראלי','israel@example.com','050-1234567','Example Ltd',prodExample,'בטיפול','0']
-    : ['John Doe','john@example.com','050-1234567','Example Ltd',prodExample,'In Progress','0'];
-  const ws=XLSX.utils.aoa_to_sheet([headers, example]);
+    ? ['שם מלא','אימייל','טלפון','חברה','סוג מוצר','איש מכירות אחראי','סטטוס','סכום עסקה']
+    : ['Full Name','Email','Phone','Company','Product Type','Sales Rep','Status','Deal Amount'];
+  const prodExample = (DB.get('products',[])[0]||{}).name || 'CRM Platform';
+  // pick two real rep names from the system if available (so the import matches them)
+  const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
+  const rep1=(reps[0]||{}).name || (LANG==='he'?'נועה ברק':'Noa Barak');
+  const rep2=(reps[1]||{}).name || (LANG==='he'?'איתי שגב':'Itay Segev');
+  const examples = LANG==='he'
+    ? [['ישראל ישראלי','israel@example.com','050-1234567','Example Ltd',prodExample,rep1,'בטיפול','0'],
+       ['דנה כהן','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'זכייה','75000']]
+    : [['John Doe','john@example.com','050-1234567','Example Ltd',prodExample,rep1,'In Progress','0'],
+       ['Dana Cohen','dana@example.com','052-7654321','Acme Corp',prodExample,rep2,'Won','75000']];
+  const ws=XLSX.utils.aoa_to_sheet([headers, ...examples]);
   ws['!cols']=headers.map(()=>({wch:18}));
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Leads');
   XLSX.writeFile(wb,'COMDA_leads_template.xlsx');
@@ -1158,21 +1283,33 @@ function handleXlsx(file){
       const stMap={'won':'won','זכ':'won','progress':'progress','טיפול':'progress','lost':'lost','הפסד':'lost','cancel':'cancelled','בוט':'cancelled','new':'new','חדש':'new'};
       const mapSt=v=>{ const s=(v||'').toString().toLowerCase(); for(const k in stMap) if(s.includes(k)) return stMap[k]; return 'new'; };
       const products=DB.get('products',[]);
+      const users=DB.get('users',[]);
       // resolve product name -> id; create new product type if it doesn't exist yet
       const resolveProduct=raw=>{ const name=(raw||'').toString().trim(); if(!name) return null;
         let p=products.find(x=>x.name.toLowerCase()===name.toLowerCase());
         if(!p){ p={id:'p_'+uid(),name}; products.push(p); } return p.id; };
+      // resolve sales rep from the Excel: match an existing user by name or email.
+      // matched -> {owner, ownerName}; unmatched name -> historical owner (ownerName only).
+      const resolveRep=raw=>{ const v=(raw||'').toString().trim(); if(!v) return {owner:null,ownerName:null};
+        const lv=v.toLowerCase();
+        const u=users.find(x=>x.name.toLowerCase()===lv || x.email.toLowerCase()===lv);
+        if(u) return {owner:u.id, ownerName:u.name};
+        return {owner:null, ownerName:v}; }; // kept as historical name (shown as inactive)
       const leads=DB.get('leads',[]); let n=0;
       rows.forEach(row=>{
         const name=pick(row,['שם','name','full']); if(!name) return;
         const status=mapSt(pick(row,['status','סטטוס','סטאטוס']));
         const product=resolveProduct(pick(row,['מוצר','product']));
+        const rep=resolveRep(pick(row,['איש מכירות','אחראי','מכירות','sales rep','owner','rep']));
+        const amount=parseInt(pick(row,['amount','סכום','value']))||0;
+        // Closed leads (won/lost/cancelled) are historical: keep their status & owner name as-is.
+        // Active leads (new/progress) keep their parsed status too — nothing is forced to "new".
         leads.push({id:guid(),name:name.toString(),email:pick(row,['mail','אימייל','מייל']).toString(),
           phone:pick(row,['phone','טלפון','נייד']).toString(),company:pick(row,['company','חברה']).toString(),
-          product, status, amount:parseInt(pick(row,['amount','סכום','value']))||0, owner:null, source:'excel',
+          product, status, amount, owner:rep.owner, ownerName:rep.ownerName, source:'excel',
           createdAt:now(),updatedAt:now(),notes:[]}); n++;
       });
-      DB.set('products',products); DB.set('leads',leads); buildNav();
+      DB.set('users',users); DB.set('products',products); DB.set('leads',leads); buildNav();
       toast((LANG==='he'?'יובאו ':'Imported ')+n+(LANG==='he'?' לידים':' leads'),true);
       renderSettings();
     }catch(err){ toast(LANG==='he'?'שגיאה בקריאת הקובץ':'Error reading file',false); }
