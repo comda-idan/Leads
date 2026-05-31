@@ -510,7 +510,8 @@ const I18N = {
     mk_source:"Source", mk_campaign:"Campaign", mk_adset:"Adset", mk_ad:"Ad", mk_keyword:"Keyword", mk_term:"Term", mk_content:"Content",
     select_field:"בחר שדה לניתוח", breakdown_by:"התפלגות לפי", cross_status:"חיתוך מול סטטוס הליד",
     no_marketing_data:"אין נתוני שיווק להצגה", no_marketing_sub:"לידים שייובאו מאקסל או API עם נתוני שיווק יופיעו כאן",
-    not_set:"לא צוין", total_in_field:"סך ערכים", top_value:"ערך מוביל"
+    not_set:"לא צוין", total_in_field:"סך ערכים", top_value:"ערך מוביל",
+    lead_count:"כמות לידים", revenue:"סכום שנכנס (₪)", total_revenue:"סך הכנסות"
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -568,7 +569,8 @@ const I18N = {
     mk_source:"Source", mk_campaign:"Campaign", mk_adset:"Adset", mk_ad:"Ad", mk_keyword:"Keyword", mk_term:"Term", mk_content:"Content",
     select_field:"Select field to analyze", breakdown_by:"Breakdown by", cross_status:"Cross-tab with lead status",
     no_marketing_data:"No marketing data to show", no_marketing_sub:"Leads imported from Excel or API with marketing data will appear here",
-    not_set:"Not set", total_in_field:"Distinct values", top_value:"Top value"
+    not_set:"Not set", total_in_field:"Distinct values", top_value:"Top value",
+    lead_count:"Lead count", revenue:"Revenue (₪)", total_revenue:"Total revenue"
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -1198,57 +1200,81 @@ function renderReports(){
 
 /* ---------- MARKETING TAB ---------- */
 let MKT_FIELD='source';
+let mktPeriod='quarter'; // 'month' | 'quarter' | 'year'
 function setMktField(f){ MKT_FIELD=f; renderMarketing(); }
+function setMktPeriod(p){ mktPeriod=p; renderMarketing(); }
 function renderMarketing(){
   const all=DB.get('leads',[]);
-  const withMkt=all.filter(l=>l.marketing && MK_FIELDS.some(f=>l.marketing[f]));
+  // Marketing analyzes leads by ACQUISITION date (createdAt) regardless of status —
+  // a lead's source/campaign describes when it entered, so it never changes period when closed.
+  const inP = l => inPeriod(l.createdAt, mktPeriod);
+  const hasMkt = l => l.marketing && MK_FIELDS.some(f=>l.marketing[f]);
+  const anyMkt = all.some(hasMkt);
+  const withMkt = all.filter(l=>hasMkt(l) && inP(l));
 
-  if(!withMkt.length){
+  if(!anyMkt){
     document.getElementById('main').innerHTML=`
       <div class="page-head"><div><h1 class="page-h1">${t('marketing_title')}</h1><p class="page-sub">${t('marketing_sub')}</p></div></div>
       ${emptyState(t('no_marketing_data'),t('no_marketing_sub'),ICON.marketing)}`;
     return;
   }
 
+  const periodLabel=t('period_'+mktPeriod);
+  const segBtn=(p)=>`<button class="${mktPeriod===p?'on':''}" onclick="setMktPeriod('${p}')">${t('period_'+p)}</button>`;
   const field=MKT_FIELD;
   const val=l=> (l.marketing&&l.marketing[field]) ? l.marketing[field] : t('not_set');
   // distinct values for the selected field (sorted by lead count desc)
   const valueCounts=new Map();
-  withMkt.forEach(l=>{ const v=val(l); valueCounts.set(v,(valueCounts.get(v)||0)+1); });
+  const valueSums=new Map(); // total ₪ (sum of amount) per value — uses the amount stored on each lead
+  withMkt.forEach(l=>{ const v=val(l); valueCounts.set(v,(valueCounts.get(v)||0)+1); valueSums.set(v,(valueSums.get(v)||0)+(l.amount||0)); });
   const values=[...valueCounts.keys()].sort((a,b)=>valueCounts.get(b)-valueCounts.get(a));
-  const topVal=values[0];
+  const topVal=values.length?values[0]:'—';
+  const totalRevenue=[...valueSums.values()].reduce((s,n)=>s+n,0);
 
   const fieldBtns=MK_FIELDS.map(f=>`<button class="${field===f?'on':''}" onclick="setMktField('${f}')">${t(MK_LABEL[f])}</button>`).join('');
 
   document.getElementById('main').innerHTML=`
-   <div class="page-head"><div><h1 class="page-h1">${t('marketing_title')}</h1><p class="page-sub">${t('marketing_sub')}</p></div></div>
+   <div class="page-head">
+     <div><h1 class="page-h1">${t('marketing_title')}</h1><p class="page-sub">${t('marketing_sub')}</p></div>
+     <div class="seg">${segBtn('month')}${segBtn('quarter')}${segBtn('year')}</div>
+   </div>
    <div class="stats-grid">
-     ${statCard(t('total_leads'),withMkt.length,'',ST_COLOR.new,ICON.marketing)}
+     ${statCard(t('total_leads')+' · '+periodLabel,withMkt.length,'',ST_COLOR.new,ICON.marketing)}
+     ${statCard(t('total_revenue')+' · '+periodLabel,fmtIls(totalRevenue),'',ST_COLOR.won,'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>')}
      ${statCard(t('total_in_field'),values.length,t(MK_LABEL[field]),'#9333ea','<path d="M4 7V4h16v3M9 20h6M12 4v16"/>')}
-     ${statCard(t('top_value'),esc(topVal),valueCounts.get(topVal)+' '+t('nav_leads'),ST_COLOR.won,'<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M9 21h6M12 15v6"/>')}
+     ${statCard(t('top_value'),esc(topVal),(values.length?valueCounts.get(topVal):0)+' '+t('nav_leads'),'#0891b2','<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M9 21h6M12 15v6"/>')}
    </div>
    <div class="seg" style="margin-bottom:16px;flex-wrap:wrap">${fieldBtns}</div>
+   ${withMkt.length? `
    <div class="chart-box" style="margin-bottom:16px">
-     <div class="card-title">${t('breakdown_by')} ${t(MK_LABEL[field])}</div>
-     <div class="chart-canvas-wrap" style="height:${Math.max(220,values.length*34+40)}px"><canvas id="chMktDist"></canvas></div>
+     <div class="card-title">${t('breakdown_by')} ${t(MK_LABEL[field])} · ${periodLabel}</div>
+     <div class="chart-canvas-wrap" style="height:${Math.max(260,values.length*52+60)}px"><canvas id="chMktDist"></canvas></div>
    </div>
    <div class="chart-box">
-     <div class="card-title">${t('cross_status')} · ${t(MK_LABEL[field])}</div>
+     <div class="card-title">${t('cross_status')} · ${t(MK_LABEL[field])} · ${periodLabel}</div>
      <div class="chart-canvas-wrap" style="height:${Math.max(240,values.length*40+60)}px"><canvas id="chMktCross"></canvas></div>
-   </div>`;
+   </div>`
+   : emptyState(t('no_marketing_data'),t('no_marketing_sub'),ICON.marketing)}`;
 
   CH.forEach(c=>c.destroy()); CH=[];
+  if(!withMkt.length) return;
   const font={family:LANG==='he'?'Heebo':'Sora'};
   Chart.defaults.font.family=font.family;
-  const rtl=LANG==='he';
 
-  // 1) distribution by selected field (horizontal bar)
+  // 1) distribution by selected field — lead count + revenue (₪) per value
   CH.push(new Chart(document.getElementById('chMktDist'),{type:'bar',
-    data:{labels:values,datasets:[{data:values.map(v=>valueCounts.get(v)),backgroundColor:values.map((v,i)=>PROD_COLORS[i%PROD_COLORS.length]),borderRadius:7,maxBarThickness:28}]},
-    options:{indexAxis:'y',plugins:{legend:{display:false}},
-      scales:{x:{beginAtZero:true,ticks:{precision:0,font},grid:{color:'#eef1f8'}},y:{ticks:{font},grid:{display:false},reverse:false}},maintainAspectRatio:false}}));
+    data:{labels:values,datasets:[
+      {label:t('lead_count'),data:values.map(v=>valueCounts.get(v)),backgroundColor:'#4252A4',borderRadius:6,maxBarThickness:18,xAxisID:'xCount'},
+      {label:t('revenue'),data:values.map(v=>valueSums.get(v)),backgroundColor:'#1aa260',borderRadius:6,maxBarThickness:18,xAxisID:'xRev'}
+    ]},
+    options:{indexAxis:'y',plugins:{legend:{position:'top',labels:{boxWidth:12,padding:12,font}},
+        tooltip:{callbacks:{label:c=>c.dataset.xAxisID==='xRev'?c.dataset.label+': '+fmtIls(c.parsed.x):c.dataset.label+': '+c.parsed.x}}},
+      scales:{
+        xCount:{position:'bottom',beginAtZero:true,ticks:{precision:0,font},grid:{color:'#eef1f8'},title:{display:true,text:t('lead_count'),font}},
+        xRev:{position:'top',beginAtZero:true,ticks:{callback:v=>'₪'+(v>=1000?(v/1000)+'k':v),font},grid:{display:false},title:{display:true,text:t('revenue'),font}},
+        y:{ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
 
-  // 2) cross-tab: count of leads by field value, stacked by status (default per user choice)
+  // 2) cross-tab: count of leads by field value, stacked by status
   const datasets=STATUSES.map(s=>({
     label:t(ST_KEY[s]),
     data:values.map(v=>withMkt.filter(l=>val(l)===v && l.status===s).length),
