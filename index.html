@@ -174,6 +174,14 @@ tbody tr:hover{background:var(--surface-2);}
 .linklike{color:var(--brand);font-weight:600;text-decoration:none;border-bottom:1px dashed transparent;transition:.15s;white-space:nowrap;}
 .linklike:hover{border-bottom-color:var(--brand);}
 .amount{font-family:var(--font-d);font-weight:700;}
+.prodtag{display:inline-block;font-size:12px;font-weight:600;color:var(--brand-dark);background:rgba(66,82,164,.08);
+  padding:3px 9px;border-radius:7px;white-space:nowrap;}
+.leadid-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 12px;padding:9px 12px;
+  background:var(--surface-2);border:1px solid var(--border-soft);border-radius:10px;font-size:12px;color:var(--text-soft);}
+.leadid-row code{font-family:ui-monospace,monospace;font-size:11px;color:var(--brand-dark);user-select:all;word-break:break-all;}
+.prod-list{display:flex;flex-direction:column;gap:8px;}
+.prod-row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface-2);
+  border:1px solid var(--border-soft);border-radius:11px;}
 
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:30px;font-size:12px;font-weight:700;white-space:nowrap;}
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -317,6 +325,7 @@ code.api{background:#fff;border:1px solid var(--border);padding:2px 7px;border-r
 
   /* hide lower-priority columns on narrow phones to avoid horizontal scroll */
   th.col-updated,td.col-updated{display:none;}
+  .prodtag{font-size:11px;padding:2px 7px;}
 
   .modal-head{padding:18px 18px 12px;}
   .modal-head h2{font-size:17px;}
@@ -332,6 +341,7 @@ code.api{background:#fff;border:1px solid var(--border);padding:2px 7px;border-r
 @media(max-width:400px){
   .stat-val{font-size:19px;}
   td,th{padding-inline:8px;}
+  th.col-product,td.col-product{display:none;}
   /* on very small screens also collapse contact column wrapping */
   .linklike{font-size:11.5px;}
 }
@@ -388,6 +398,10 @@ code.api{background:#fff;border:1px solid var(--border);padding:2px 7px;border-r
       <div class="em" id="menuEmail">—</div>
       <div class="rl" id="menuRole">—</div>
     </div>
+    <button class="menu-item" onclick="openChangePw()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      <span data-i18n="change_pw">שינוי סיסמה</span>
+    </button>
     <button class="menu-item" onclick="setupPasskey()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>
       <span data-i18n="reg_passkey">רישום Passkey במכשיר זה</span>
@@ -449,7 +463,17 @@ const I18N = {
     email_action:"שלח אימייל", call_action:"חייג", deal_value:"שווי עסקה",
     api_title:"ייבוא אוטומטי ממיילים (API)", quarter:"רבעון", avg_deal:"עסקה ממוצעת", win_rate:"אחוז זכייה",
     pw_temp:"סיסמה זמנית נשלחה (דמו): ", user_added:"המשתמש נוסף", emailph:"name@comda.co.il",
-    overview:"סקירה כללית", recent:"לידים אחרונים", all_reps:"כל אנשי המכירות"
+    overview:"סקירה כללית", recent:"לידים אחרונים", all_reps:"כל אנשי המכירות",
+    product:"סוג מוצר", col_product:"סוג מוצר", select_product:"בחר סוג מוצר…", no_product:"ללא מוצר",
+    by_product:"התפלגות לפי סוג מוצר", manage_products:"ניהול סוגי מוצרים", add_product:"הוספת מוצר",
+    product_name:"שם המוצר", product_added:"המוצר נוסף", product_updated:"שם המוצר עודכן", product_deleted:"המוצר הוסר",
+    confirm_del_product:"להסיר את סוג המוצר? הוא יוסר מהלידים המשויכים אליו.", product_exists:"מוצר בשם זה כבר קיים",
+    period_month:"חודש נוכחי", period_quarter:"רבעון נוכחי", period_year:"שנה נוכחית",
+    total_month:"לידים החודש", won_month:"זכיות החודש", lost_month:"הפסדים החודש",
+    change_pw:"שינוי סיסמה", current_pw:"סיסמה נוכחית", new_pw:"סיסמה חדשה", confirm_pw:"אימות סיסמה חדשה",
+    pw_changed:"הסיסמה שונתה בהצלחה", pw_wrong_current:"הסיסמה הנוכחית שגויה", pw_mismatch:"הסיסמאות אינן תואמות", pw_short:"הסיסמה חייבת לפחות 4 תווים",
+    lead_id:"מזהה ליד", download_template:"הורד קובץ אקסל לדוגמה", template_hint:"השורה הראשונה היא כותרות. מלאו שורה אחת לכל ליד.",
+    import_cols:"עמודות הקובץ: שם מלא, אימייל, טלפון, חברה, סוג מוצר, סטטוס, סכום עסקה"
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -481,7 +505,17 @@ const I18N = {
     email_action:"Send email", call_action:"Call", deal_value:"Deal value",
     api_title:"Automatic email import (API)", quarter:"Quarter", avg_deal:"Avg deal", win_rate:"Win rate",
     pw_temp:"Temporary password sent (demo): ", user_added:"User added", emailph:"name@comda.co.il",
-    overview:"Overview", recent:"Recent leads", all_reps:"All reps"
+    overview:"Overview", recent:"Recent leads", all_reps:"All reps",
+    product:"Product type", col_product:"Product", select_product:"Select product…", no_product:"No product",
+    by_product:"Breakdown by product type", manage_products:"Product types", add_product:"Add product",
+    product_name:"Product name", product_added:"Product added", product_updated:"Product renamed", product_deleted:"Product removed",
+    confirm_del_product:"Remove this product type? It will be cleared from its leads.", product_exists:"A product with this name already exists",
+    period_month:"This month", period_quarter:"This quarter", period_year:"This year",
+    total_month:"Leads this month", won_month:"Won this month", lost_month:"Lost this month",
+    change_pw:"Change password", current_pw:"Current password", new_pw:"New password", confirm_pw:"Confirm new password",
+    pw_changed:"Password changed", pw_wrong_current:"Current password is incorrect", pw_mismatch:"Passwords do not match", pw_short:"Password must be at least 4 characters",
+    lead_id:"Lead ID", download_template:"Download Excel template", template_hint:"First row is headers. Add one row per lead.",
+    import_cols:"File columns: full name, email, phone, company, product type, status, deal amount"
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -493,35 +527,46 @@ const DB = {
   set(k,v){ localStorage.setItem('comda_'+k, JSON.stringify(v)); }
 };
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+// RFC4122-style GUID, immutable per lead
+const guid = () => (crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}));
 const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded')) return;
+  if(DB.get('seeded_v2')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'admin123', role:'admin', locked:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'manager123', role:'manager', locked:false},
     {id:'u_rep1',  name:'נועה ברק', email:'noa@comda.co.il', pass:'rep123', role:'rep', locked:false},
     {id:'u_rep2',  name:'איתי שגב', email:'itay@comda.co.il', pass:'rep123', role:'rep', locked:false}
   ];
+  const products = [
+    {id:'p_crm', name:'CRM Platform'},
+    {id:'p_cloud', name:'Cloud Hosting'},
+    {id:'p_sec', name:'Cyber Security'},
+    {id:'p_bi', name:'BI & Analytics'}
+  ];
   const Y = new Date().getFullYear();
   const d = (m,day)=> new Date(Y,m,day).toISOString();
-  const mk=(name,email,phone,company,status,owner,amount,src,mc,md,notes=[])=>(
-    {id:uid(),name,email,phone,company,status,owner,amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+  const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[])=>(
+    {id:guid(),name,email,phone,company,product,status,owner,amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+  const M = new Date().getMonth(); // current month for some recent leads
   const leads = [
-    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','won','u_rep1',85000,'email',0,12,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(1,8),by:'נועה ברק'}]),
-    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','won','u_rep1',124000,'email',1,4),
-    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','progress','u_rep1',0,'email',3,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(3,3),by:'נועה ברק'}]),
-    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','progress','u_rep2',0,'excel',3,9),
-    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','won','u_rep2',56000,'email',2,18),
-    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','lost','u_rep2',0,'email',2,7,[{text:'בחרו בספק אחר',at:d(2,14),by:'איתי שגב'}]),
-    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','progress','u_rep1',0,'email',4,1),
-    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','cancelled','u_rep2',0,'excel',1,22),
-    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','won','u_rep2',43000,'email',4,10),
-    mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep','new',null,0,'email',4,24),
-    mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge','new',null,0,'email',4,26)
+    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_crm','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}]),
+    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_cloud','won','u_rep1',124000,'email',M,8),
+    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_sec','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}]),
+    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_bi','progress','u_rep2',0,'excel',M,9),
+    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_crm','won','u_rep2',56000,'email',Math.max(0,M-2),18),
+    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_cloud','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}]),
+    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_cloud','progress','u_rep1',0,'email',M,1),
+    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_bi','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22),
+    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_sec','won','u_rep2',43000,'email',Math.max(0,M-1),10),
+    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_crm','lost','u_rep1',0,'email',M,11),
+    mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24),
+    mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26)
   ];
-  DB.set('users',users); DB.set('leads',leads); DB.set('seeded',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v2',true);
 }
 </script>
 
@@ -543,7 +588,7 @@ function currentUser(){ const id=SESSION; return id?DB.get('users',[]).find(u=>u
 const CAP = {
   admin:   {tabs:['leads','newleads','reports','settings'], delete:true, manageUsers:true, assign:true},
   manager: {tabs:['leads','newleads','reports'],            delete:true, manageUsers:false, assign:true},
-  rep:     {tabs:['leads'],                                  delete:false, manageUsers:false, assign:false}
+  rep:     {tabs:['leads','newleads'],                      delete:false, manageUsers:false, assign:true}
 };
 const can = c => { const u=currentUser(); return u?CAP[u.role][c]:false; };
 const myTabs = () => { const u=currentUser(); return u?CAP[u.role].tabs:[]; };
@@ -631,6 +676,16 @@ const fmtIls = n => '₪'+(n||0).toLocaleString('en-US');
 const fmtDate = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short'}); };
 const quarterOf = iso => Math.floor(new Date(iso).getMonth()/3)+1;
 const userName = id => { const u=DB.get('users',[]).find(x=>x.id===id); return u?u.name:t('unassigned'); };
+const productName = id => { if(!id) return t('no_product'); const p=DB.get('products',[]).find(x=>x.id===id); return p?p.name:t('no_product'); };
+const PROD_COLORS=['#4252A4','#ED1C24','#1aa260','#d98a00','#2d6cdf','#9333ea','#0891b2','#db2777','#65a30d','#ea580c'];
+// period helpers: 'month' | 'quarter' | 'year' — relative to "now"
+function inPeriod(iso,period){
+  if(!iso) return false; const d=new Date(iso); const n=new Date();
+  if(d.getFullYear()!==n.getFullYear()) return false;
+  if(period==='year') return true;
+  if(period==='quarter') return quarterOf(iso)===quarterOf(n.toISOString());
+  return d.getMonth()===n.getMonth(); // month
+}
 
 /* ---------- nav ---------- */
 let CURRENT='leads';
@@ -669,28 +724,33 @@ function visibleLeads(){
 
 /* ---------- LEADS TAB ---------- */
 let leadFilters=new Set(['progress']); // default
+let leadProductFilter=''; // '' = all
 let leadSearch='';
 function computeLeadRows(){
   const all=visibleLeads();
   let rows=all.filter(l=>leadFilters.has(l.status));
+  if(leadProductFilter){ rows=rows.filter(l=> leadProductFilter==='__none__' ? !l.product : (l.product||'')===leadProductFilter); }
   if(leadSearch){ const q=leadSearch.toLowerCase();
-    rows=rows.filter(l=>[l.name,l.company,l.email,l.phone].some(v=>(v||'').toLowerCase().includes(q))); }
+    rows=rows.filter(l=>[l.name,l.company,l.email,l.phone,productName(l.product)].some(v=>(v||'').toLowerCase().includes(q))); }
   rows.sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
   return rows;
 }
 function renderLeads(){
   const all=visibleLeads();
-  const Y=new Date().getFullYear();
-  const won=all.filter(l=>l.status==='won');
-  const wonYear=won.filter(l=>new Date(l.updatedAt).getFullYear()===Y);
-  const curQ=quarterOf(now());
-  const wonQ=wonYear.filter(l=>quarterOf(l.updatedAt)===curQ);
-  const sum=arr=>arr.reduce((s,l)=>s+(l.amount||0),0);
   const counts={}; STATUSES.forEach(s=>counts[s]=all.filter(l=>l.status===s).length);
   const rows=computeLeadRows();
+  const products=DB.get('products',[]);
+
+  // item 3: stat cards = leads this month, in progress, won this month, lost this month
+  const totalMonth = all.filter(l=>inPeriod(l.createdAt,'month')).length;
+  const wonMonth   = all.filter(l=>l.status==='won' && inPeriod(l.updatedAt,'month'));
+  const lostMonth  = all.filter(l=>l.status==='lost'&& inPeriod(l.updatedAt,'month')).length;
 
   const chips=STATUSES.map(s=>`<button class="chip ${leadFilters.has(s)?'on':''}" onclick="toggleFilter('${s}')">
       ${t(ST_KEY[s])}<span class="cnt">${counts[s]}</span></button>`).join('');
+  const prodOptions = `<option value="">${LANG==='he'?'כל המוצרים':'All products'}</option>`+
+    products.map(p=>`<option value="${p.id}" ${leadProductFilter===p.id?'selected':''}>${esc(p.name)}</option>`).join('')+
+    `<option value="__none__" ${leadProductFilter==='__none__'?'selected':''}>${t('no_product')}</option>`;
 
   document.getElementById('main').innerHTML=`
   <div class="page-head">
@@ -698,14 +758,15 @@ function renderLeads(){
     <button class="btn" style="width:auto;padding:9px 16px" onclick="openLeadModal()">${svg('<path d="M12 5v14M5 12h14"/>','')} ${t('add_lead')}</button>
   </div>
   <div class="stats-grid">
-    ${statCard(t('total_leads'),all.length,'',ST_COLOR.new,ICON.leads)}
+    ${statCard(t('total_month'),totalMonth,'',ST_COLOR.new,ICON.leads)}
     ${statCard(t('in_progress'),counts.progress,'',ST_COLOR.progress,'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')}
-    ${statCard(t('won_q'),fmtIls(sum(wonQ)),'Q'+curQ+' · '+wonQ.length+' '+t('st_won'),ST_COLOR.won,'<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M6 9H3a3 3 0 003 3M18 9h3a3 3 0 01-3 3M9 21h6M12 15v6"/>')}
-    ${statCard(t('won_year'),fmtIls(sum(wonYear)),Y+' · '+wonYear.length+' '+t('st_won'),'#34407f','<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>')}
+    ${statCard(t('won_month'),wonMonth.length,fmtIls(wonMonth.reduce((s,l)=>s+(l.amount||0),0)),ST_COLOR.won,'<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M6 9H3a3 3 0 003 3M18 9h3a3 3 0 01-3 3M9 21h6M12 15v6"/>')}
+    ${statCard(t('lost_month'),lostMonth,'',ST_COLOR.lost,'<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>')}
   </div>
   <div class="toolbar">
     <div class="search-box">${svg('<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>')}
       <input id="leadSearch" placeholder="${t('search')}" value="${leadSearch}"></div>
+    <select id="leadProdFilter" style="padding:10px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);min-width:150px" onchange="leadProductFilter=this.value;updateLeadResults()">${prodOptions}</select>
   </div>
   <div class="chips" style="margin-bottom:14px">${chips}
     <button class="chip" onclick="leadFilters=new Set(STATUSES);renderLeads()">${t('show_all')}</button></div>
@@ -723,7 +784,6 @@ function updateLeadResults(){
 }
 function toggleFilter(s){
   leadFilters.has(s)?leadFilters.delete(s):leadFilters.add(s); if(!leadFilters.size)leadFilters.add(s);
-  // update chip states + results only; keep search box & keyboard intact
   document.querySelectorAll('.chips .chip').forEach((c,i)=>{ if(i<STATUSES.length) c.classList.toggle('on',leadFilters.has(STATUSES[i])); });
   updateLeadResults();
 }
@@ -737,14 +797,16 @@ function statCard(label,val,sub,color,ico){
 
 function leadsTable(rows){
   const showOwner = currentUser().role!=='rep';
-  const head=`<tr><th>${t('col_customer')}</th><th>${t('col_contact')}</th><th>${t('col_status')}</th>
+  const head=`<tr><th>${t('col_customer')}</th><th>${t('col_contact')}</th><th class="col-product">${t('col_product')}</th><th>${t('col_status')}</th>
     <th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-updated">${t('col_updated')}</th></tr>`;
   const body=rows.map(l=>{
     const mail=l.email?`<a class="linklike" href="mailto:${l.email}" onclick="event.stopPropagation()">${l.email}</a>`:'';
     const tel=l.phone?`<a class="linklike" href="tel:${l.phone.replace(/[^+\d]/g,'')}" onclick="event.stopPropagation()" style="display:block;margin-top:3px">${l.phone}</a>`:'';
+    const prod=l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>';
     return `<tr onclick="openLeadModal('${l.id}')">
       <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
       <td>${mail}${tel}</td>
+      <td class="col-product">${prod}</td>
       <td><span class="badge ${ST_BADGE[l.status]}">${t(ST_KEY[l.status])}</span></td>
       <td>${l.status==='won'&&l.amount?`<span class="amount">${fmtIls(l.amount)}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
       ${showOwner?`<td>${l.owner?esc(userName(l.owner)):'<span style="color:var(--text-faint)">'+t('unassigned')+'</span>'}</td>`:''}
@@ -765,7 +827,7 @@ document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id=
 let EDIT_ID=null;
 function openLeadModal(id){
   EDIT_ID=id||null;
-  const l = id? DB.get('leads',[]).find(x=>x.id===id) : {name:'',email:'',phone:'',company:'',status:'new',amount:0,owner:currentUser().role==='rep'?currentUser().id:null,notes:[]};
+  const l = id? DB.get('leads',[]).find(x=>x.id===id) : {name:'',email:'',phone:'',company:'',product:'',status:'new',amount:0,owner:currentUser().role==='rep'?currentUser().id:null,notes:[]};
   if(!l){ return; }
   const isNew=!id;
   const canDelete=can('delete')&&!isNew;
@@ -773,6 +835,8 @@ function openLeadModal(id){
   const ownerOpts=`<option value="">${t('unassigned')}</option>`+reps.map(u=>`<option value="${u.id}" ${l.owner===u.id?'selected':''}>${esc(u.name)}</option>`).join('');
   const canAssign = can('assign');
   const stOpts=STATUSES.map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t(ST_KEY[s])}</option>`).join('');
+  const products=DB.get('products',[]);
+  const prodOpts=`<option value="">${t('select_product')}</option>`+products.map(p=>`<option value="${p.id}" ${l.product===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
   const notesHtml=(l.notes||[]).slice().reverse().map(n=>`<div class="note">${esc(n.text)}<div class="note-meta">${esc(n.by)} · ${new Date(n.at).toLocaleString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')||`<p style="color:var(--text-faint);font-size:13px">—</p>`;
 
   openModal(`<div class="modal">
@@ -784,7 +848,10 @@ function openLeadModal(id){
         <div class="field"><label>${t('email')}</label><input id="m_email" type="email" value="${esc(l.email)}"></div>
         <div class="field"><label>${t('phone')}</label><input id="m_phone" value="${esc(l.phone)}"></div>
       </div>
-      <div class="field"><label>${t('company')}</label><input id="m_company" value="${esc(l.company||'')}"></div>
+      <div class="frow">
+        <div class="field"><label>${t('company')}</label><input id="m_company" value="${esc(l.company||'')}"></div>
+        <div class="field"><label>${t('product')}</label><select id="m_product">${prodOpts}</select></div>
+      </div>
       <div class="frow">
         <div class="field"><label>${t('status')}</label><select id="m_status" onchange="onStatusChange()">${stOpts}</select></div>
         <div class="field" id="amtField" style="${l.status==='won'?'':'display:none'}"><label>${t('amount')}</label><input id="m_amount" type="number" min="0" value="${l.amount||''}"></div>
@@ -792,6 +859,7 @@ function openLeadModal(id){
       ${canAssign?`<div class="field"><label>${t('owner')}</label><select id="m_owner">${ownerOpts}</select></div>`:`<input type="hidden" id="m_owner" value="${l.owner||''}">`}
       <div class="field"><label>${t('note')}</label><textarea id="m_note" placeholder="${LANG==='he'?'מה קרה בשיחה / השלב הבא…':'What happened / next step…'}"></textarea></div>
       ${!isNew?`<div class="field"><label>${t('notes')}</label><div class="notes">${notesHtml}</div></div>`:''}
+      ${!isNew?`<div class="leadid-row"><span>${t('lead_id')}</span><code>${esc(l.id)}</code></div>`:''}
     </div>
     <div class="modal-foot">
       ${canDelete?`<button class="btn btn-danger" style="flex:0 0 auto;width:48px" onclick="deleteLead('${id}')">${svg('<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>')}</button>`:''}
@@ -809,16 +877,17 @@ function saveLead(){
   const amount=parseInt(document.getElementById('m_amount')?.value||0)||0;
   if(status==='won'&&amount<=0){ toast(t('req_amount'),false); return; }
   const owner=document.getElementById('m_owner').value||null;
+  const product=document.getElementById('m_product').value||null;
   const noteTxt=document.getElementById('m_note').value.trim();
   const leads=DB.get('leads',[]);
   if(EDIT_ID){
-    const l=leads.find(x=>x.id===EDIT_ID);
+    const l=leads.find(x=>x.id===EDIT_ID); // id (GUID) is never modified
     Object.assign(l,{name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
-      company:document.getElementById('m_company').value.trim(),status,amount,owner,updatedAt:now()});
+      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,updatedAt:now()});
     if(noteTxt){ l.notes=l.notes||[]; l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
   }else{
-    leads.push({id:uid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
-      company:document.getElementById('m_company').value.trim(),status,amount,owner,source:'manual',
+    leads.push({id:guid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
+      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,source:'manual',
       createdAt:now(),updatedAt:now(),notes:noteTxt?[{text:noteTxt,at:now(),by:currentUser().name}]:[]});
   }
   DB.set('leads',leads); closeModal(); buildNav();
@@ -841,10 +910,11 @@ function renderNewLeads(){
    <div class="page-head"><div><h1 class="page-h1">${t('newleads_title')}</h1><p class="page-sub">${t('newleads_sub')}</p></div></div>
    ${apiHelpBox()}
    ${news.length? `<div class="table-wrap"><table><thead><tr>
-      <th>${t('col_customer')}</th><th>${t('col_contact')}</th><th>${t('source')}</th><th>${t('assign_to')}</th></tr></thead>
+      <th>${t('col_customer')}</th><th>${t('col_contact')}</th><th class="col-product">${t('col_product')}</th><th>${t('source')}</th><th>${t('assign_to')}</th></tr></thead>
       <tbody>${news.map(l=>`<tr>
         <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
         <td>${l.email?`<a class="linklike" href="mailto:${l.email}">${l.email}</a>`:''}${l.phone?`<a class="linklike" href="tel:${l.phone.replace(/[^+\d]/g,'')}" style="display:block;margin-top:3px">${l.phone}</a>`:''}</td>
+        <td class="col-product">${l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
         <td><span style="font-size:12px;color:var(--text-soft)">${l.source==='email'?'📧 Email':l.source==='excel'?'📄 Excel':'✏️ Manual'}</span></td>
         <td><select onchange="assignLead('${l.id}',this.value)" style="padding:9px 12px;min-width:170px">
           <option value="">${t('select_rep')}</option>
@@ -871,50 +941,63 @@ function apiHelpBox(){
 <script>
 /* ---------- REPORTS ---------- */
 let CH=[];
+let reportPeriod='quarter'; // 'month' | 'quarter' | 'year'
+function setPeriod(p){ reportPeriod=p; renderReports(); }
 function renderReports(){
-  const leads=DB.get('leads',[]);
+  const allLeads=DB.get('leads',[]);
+  // period filter: outcome/activity based on updatedAt; new/in-progress based on createdAt
+  const inP = l => inPeriod(l.status==='new'||l.status==='progress'?l.createdAt:l.updatedAt, reportPeriod);
+  const leads=allLeads.filter(inP);
   const won=leads.filter(l=>l.status==='won');
   const totalWon=won.reduce((s,l)=>s+(l.amount||0),0);
-  const Y=new Date().getFullYear();
   const reps=DB.get('users',[]).filter(u=>u.role==='rep'||u.role==='manager');
+  const products=DB.get('products',[]);
   const decided=leads.filter(l=>['won','lost'].includes(l.status)).length;
   const winRate=decided?Math.round(won.length/decided*100):0;
   const avg=won.length?Math.round(totalWon/won.length):0;
+  const periodLabel = t('period_'+reportPeriod);
+
+  const segBtn=(p)=>`<button class="${reportPeriod===p?'on':''}" onclick="setPeriod('${p}')">${t('period_'+p)}</button>`;
 
   document.getElementById('main').innerHTML=`
-   <div class="page-head"><div><h1 class="page-h1">${t('reports_title')}</h1><p class="page-sub">${t('reports_sub')}</p></div></div>
+   <div class="page-head">
+     <div><h1 class="page-h1">${t('reports_title')}</h1><p class="page-sub">${t('reports_sub')}</p></div>
+     <div class="seg">${segBtn('month')}${segBtn('quarter')}${segBtn('year')}</div>
+   </div>
    <div class="stats-grid">
-     ${statCard(t('won_year'),fmtIls(totalWon),won.length+' '+t('st_won'),ST_COLOR.won,'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>')}
+     ${statCard(t('st_won')+' · '+periodLabel,fmtIls(totalWon),won.length+' '+t('st_won'),ST_COLOR.won,'<path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/>')}
      ${statCard(t('avg_deal'),fmtIls(avg),'',ST_COLOR.new,'<path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>')}
      ${statCard(t('win_rate'),winRate+'%','',ST_COLOR.progress,'<path d="M6 9V2h12v7a6 6 0 01-12 0z"/><path d="M9 21h6M12 15v6"/>')}
-     ${statCard(t('total_leads'),leads.length,'',ST_COLOR.cancelled,ICON.leads)}
+     ${statCard(t('total_leads')+' · '+periodLabel,leads.length,'',ST_COLOR.cancelled,ICON.leads)}
    </div>
    <div class="charts-grid">
-     <div class="chart-box"><div class="card-title">${t('by_status')}</div><div class="chart-canvas-wrap"><canvas id="chStatus"></canvas></div></div>
-     <div class="chart-box"><div class="card-title">${t('by_rep')}</div><div class="chart-canvas-wrap"><canvas id="chRep"></canvas></div></div>
+     <div class="chart-box"><div class="card-title">${t('by_status')} · ${periodLabel}</div><div class="chart-canvas-wrap"><canvas id="chStatus"></canvas></div></div>
+     <div class="chart-box"><div class="card-title">${t('by_product')} · ${periodLabel}</div><div class="chart-canvas-wrap"><canvas id="chProd"></canvas></div></div>
    </div>
-   <div class="chart-box"><div class="card-title">${t('by_quarter')} · ${Y}</div><div class="chart-canvas-wrap" style="height:280px"><canvas id="chQ"></canvas></div></div>`;
+   <div class="chart-box"><div class="card-title">${t('by_rep')} · ${periodLabel}</div><div class="chart-canvas-wrap" style="height:280px"><canvas id="chRep"></canvas></div></div>`;
 
   CH.forEach(c=>c.destroy()); CH=[];
   const font={family:LANG==='he'?'Heebo':'Sora'};
   Chart.defaults.font.family=font.family;
 
-  // status doughnut
+  // status doughnut (period)
   const sc=STATUSES.map(s=>leads.filter(l=>l.status===s).length);
   CH.push(new Chart(document.getElementById('chStatus'),{type:'doughnut',
     data:{labels:STATUSES.map(s=>t(ST_KEY[s])),datasets:[{data:sc,backgroundColor:STATUSES.map(s=>ST_COLOR[s]),borderWidth:0,hoverOffset:6}]},
     options:{cutout:'62%',plugins:{legend:{position:LANG==='he'?'right':'left',labels:{boxWidth:12,padding:14,font}}},maintainAspectRatio:false}}));
 
-  // sales by rep
+  // by product (period) — count of leads per product type
+  const prodLabels=products.map(p=>p.name).concat([t('no_product')]);
+  const prodData=products.map(p=>leads.filter(l=>l.product===p.id).length).concat([leads.filter(l=>!l.product).length]);
+  const prodColors=products.map((p,i)=>PROD_COLORS[i%PROD_COLORS.length]).concat(['#c2c8d6']);
+  CH.push(new Chart(document.getElementById('chProd'),{type:'doughnut',
+    data:{labels:prodLabels,datasets:[{data:prodData,backgroundColor:prodColors,borderWidth:0,hoverOffset:6}]},
+    options:{cutout:'62%',plugins:{legend:{position:LANG==='he'?'right':'left',labels:{boxWidth:12,padding:12,font}}},maintainAspectRatio:false}}));
+
+  // sales by rep (period, by won amount)
   const repWon=reps.map(u=>won.filter(l=>l.owner===u.id).reduce((s,l)=>s+(l.amount||0),0));
   CH.push(new Chart(document.getElementById('chRep'),{type:'bar',
-    data:{labels:reps.map(u=>u.name),datasets:[{data:repWon,backgroundColor:'#4252A4',borderRadius:8,maxBarThickness:46}]},
-    options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'₪'+(v/1000)+'k',font},grid:{color:'#eef1f8'}},x:{ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
-
-  // won by quarter
-  const q=[0,0,0,0]; won.filter(l=>new Date(l.updatedAt).getFullYear()===Y).forEach(l=>q[quarterOf(l.updatedAt)-1]+=(l.amount||0));
-  CH.push(new Chart(document.getElementById('chQ'),{type:'bar',
-    data:{labels:['Q1','Q2','Q3','Q4'],datasets:[{label:t('st_won'),data:q,backgroundColor:['#1aa260','#1aa260','#1aa260','#1aa260'],borderRadius:8,maxBarThickness:80}]},
+    data:{labels:reps.map(u=>u.name),datasets:[{data:repWon,backgroundColor:'#4252A4',borderRadius:8,maxBarThickness:60}]},
     options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>'₪'+(v/1000)+'k',font},grid:{color:'#eef1f8'}},x:{ticks:{font},grid:{display:false}}},maintainAspectRatio:false}}));
 }
 
@@ -938,8 +1021,26 @@ function renderSettings(){
          ${u.id!==SESSION?`<button class="icon-btn" title="${t('delete')}" onclick="delUser('${u.id}')" style="color:var(--red)">${svg('<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>')}</button>`:''}
        </div></td></tr>`).join('')}</tbody></table></div>
    </div>
+
+   <div class="card card-pad" style="margin-bottom:18px">
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+       <div class="card-title" style="margin:0">${t('manage_products')}</div>
+       <button class="btn" style="width:auto;padding:10px 18px" onclick="openProductModal()">${svg('<path d="M12 5v14M5 12h14"/>')} ${t('add_product')}</button></div>
+     <div class="prod-list">${DB.get('products',[]).map(p=>`
+       <div class="prod-row">
+         <span class="prodtag" style="font-size:13px">${esc(p.name)}</span>
+         <div style="display:flex;gap:6px;margin-inline-start:auto">
+           <button class="icon-btn" title="${LANG==='he'?'עריכה':'Edit'}" onclick="openProductModal('${p.id}')">${svg('<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>')}</button>
+           <button class="icon-btn" title="${t('delete')}" style="color:var(--red)" onclick="delProduct('${p.id}')">${svg('<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/>')}</button>
+         </div></div>`).join('')||`<p style="color:var(--text-faint);font-size:13px">${LANG==='he'?'אין מוצרים מוגדרים':'No products defined'}</p>`}</div>
+   </div>
+
    <div class="card card-pad">
-     <div class="card-title">${t('import_excel')}</div><div class="card-sub">${t('import_hint')}</div>
+     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:10px">
+       <div class="card-title" style="margin:0">${t('import_excel')}</div>
+       <button class="btn btn-ghost" style="width:auto;padding:9px 15px" onclick="downloadTemplate()">${svg('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>')} ${t('download_template')}</button>
+     </div>
+     <div class="card-sub">${t('import_cols')}</div>
      <div class="dropzone" id="dropzone" onclick="document.getElementById('xlsxInput').click()">
        ${svg('<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>')}
        <div style="font-weight:600">${LANG==='he'?'בחרו קובץ Excel / CSV':'Choose Excel / CSV file'}</div></div>
@@ -976,6 +1077,75 @@ function saveUser(){
   closeModal(); toast(t('user_added'),true); renderSettings();
 }
 
+/* ---------- product management (item 5) ---------- */
+let PROD_EDIT=null;
+function openProductModal(id){
+  PROD_EDIT=id||null;
+  const p = id? DB.get('products',[]).find(x=>x.id===id) : {name:''};
+  openModal(`<div class="modal" style="max-width:420px"><div class="modal-head"><div><h2>${id?t('manage_products'):t('add_product')}</h2></div>
+    <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
+   <div class="modal-body"><div class="field"><label>${t('product_name')}</label><input id="p_name" value="${esc(p.name)}" placeholder="${LANG==='he'?'לדוגמה: CRM Platform':'e.g. CRM Platform'}"></div></div>
+   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveProduct()">${t('save')}</button></div></div>`);
+  setTimeout(()=>document.getElementById('p_name')?.focus(),50);
+}
+function saveProduct(){
+  const name=document.getElementById('p_name').value.trim();
+  if(!name){ toast(LANG==='he'?'יש להזין שם מוצר':'Product name required',false); return; }
+  const products=DB.get('products',[]);
+  if(products.some(p=>p.name.toLowerCase()===name.toLowerCase() && p.id!==PROD_EDIT)){ toast(t('product_exists'),false); return; }
+  if(PROD_EDIT){
+    products.find(p=>p.id===PROD_EDIT).name=name; // rename only; id stays, so leads stay linked
+    DB.set('products',products); closeModal(); toast(t('product_updated'),true);
+  }else{
+    products.push({id:'p_'+uid(),name}); DB.set('products',products); closeModal(); toast(t('product_added'),true);
+  }
+  renderSettings();
+}
+function delProduct(id){
+  if(!confirm(t('confirm_del_product'))) return;
+  DB.set('products',DB.get('products',[]).filter(p=>p.id!==id));
+  // clear product from any leads that referenced it
+  const leads=DB.get('leads',[]); leads.forEach(l=>{ if(l.product===id) l.product=null; }); DB.set('leads',leads);
+  toast(t('product_deleted'),true); renderSettings();
+}
+
+/* ---------- change own password (item 6) ---------- */
+function openChangePw(){
+  document.getElementById('userMenu').classList.remove('show');
+  openModal(`<div class="modal" style="max-width:420px"><div class="modal-head"><div><h2>${t('change_pw')}</h2></div>
+    <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
+   <div class="modal-body">
+     <div class="field"><label>${t('current_pw')}</label><input id="cp_cur" type="password" autocomplete="current-password"></div>
+     <div class="field"><label>${t('new_pw')}</label><input id="cp_new" type="password" autocomplete="new-password"></div>
+     <div class="field"><label>${t('confirm_pw')}</label><input id="cp_conf" type="password" autocomplete="new-password"></div>
+   </div>
+   <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveOwnPw()">${t('save')}</button></div></div>`);
+}
+function saveOwnPw(){
+  const cur=document.getElementById('cp_cur').value, nw=document.getElementById('cp_new').value, cf=document.getElementById('cp_conf').value;
+  const u=currentUser();
+  if(u.pass!==cur){ toast(t('pw_wrong_current'),false); return; }
+  if(nw.length<4){ toast(t('pw_short'),false); return; }
+  if(nw!==cf){ toast(t('pw_mismatch'),false); return; }
+  const users=DB.get('users',[]); users.find(x=>x.id===u.id).pass=nw; DB.set('users',users);
+  closeModal(); toast(t('pw_changed'),true);
+}
+
+/* ---------- Excel template download (item 8) ---------- */
+function downloadTemplate(){
+  const headers = LANG==='he'
+    ? ['שם מלא','אימייל','טלפון','חברה','סוג מוצר','סטטוס','סכום עסקה']
+    : ['Full Name','Email','Phone','Company','Product Type','Status','Deal Amount'];
+  const prodExample = (DB.get('products',[])[0]||{}).name || (LANG==='he'?'CRM Platform':'CRM Platform');
+  const example = LANG==='he'
+    ? ['ישראל ישראלי','israel@example.com','050-1234567','Example Ltd',prodExample,'בטיפול','0']
+    : ['John Doe','john@example.com','050-1234567','Example Ltd',prodExample,'In Progress','0'];
+  const ws=XLSX.utils.aoa_to_sheet([headers, example]);
+  ws['!cols']=headers.map(()=>({wch:18}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Leads');
+  XLSX.writeFile(wb,'COMDA_leads_template.xlsx');
+}
+
 /* ---------- Excel import ---------- */
 function handleXlsx(file){
   if(!file) return;
@@ -987,16 +1157,22 @@ function handleXlsx(file){
       const pick=(o,keys)=>{ for(const k of Object.keys(o)){ const kn=k.toString().toLowerCase().trim(); if(keys.some(x=>kn.includes(x))) return o[k]; } return ''; };
       const stMap={'won':'won','זכ':'won','progress':'progress','טיפול':'progress','lost':'lost','הפסד':'lost','cancel':'cancelled','בוט':'cancelled','new':'new','חדש':'new'};
       const mapSt=v=>{ const s=(v||'').toString().toLowerCase(); for(const k in stMap) if(s.includes(k)) return stMap[k]; return 'new'; };
+      const products=DB.get('products',[]);
+      // resolve product name -> id; create new product type if it doesn't exist yet
+      const resolveProduct=raw=>{ const name=(raw||'').toString().trim(); if(!name) return null;
+        let p=products.find(x=>x.name.toLowerCase()===name.toLowerCase());
+        if(!p){ p={id:'p_'+uid(),name}; products.push(p); } return p.id; };
       const leads=DB.get('leads',[]); let n=0;
       rows.forEach(row=>{
         const name=pick(row,['שם','name','full']); if(!name) return;
         const status=mapSt(pick(row,['status','סטטוס','סטאטוס']));
-        leads.push({id:uid(),name:name.toString(),email:pick(row,['mail','אימייל','מייל']).toString(),
+        const product=resolveProduct(pick(row,['מוצר','product']));
+        leads.push({id:guid(),name:name.toString(),email:pick(row,['mail','אימייל','מייל']).toString(),
           phone:pick(row,['phone','טלפון','נייד']).toString(),company:pick(row,['company','חברה']).toString(),
-          status, amount:parseInt(pick(row,['amount','סכום','value']))||0, owner:null, source:'excel',
+          product, status, amount:parseInt(pick(row,['amount','סכום','value']))||0, owner:null, source:'excel',
           createdAt:now(),updatedAt:now(),notes:[]}); n++;
       });
-      DB.set('leads',leads); buildNav();
+      DB.set('products',products); DB.set('leads',leads); buildNav();
       toast((LANG==='he'?'יובאו ':'Imported ')+n+(LANG==='he'?' לידים':' leads'),true);
       renderSettings();
     }catch(err){ toast(LANG==='he'?'שגיאה בקריאת הקובץ':'Error reading file',false); }
