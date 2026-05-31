@@ -800,6 +800,9 @@ function waNumber(phone){
 const fmtDate = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short'}); };
 const quarterOf = iso => Math.floor(new Date(iso).getMonth()/3)+1;
 const userName = id => { const u=DB.get('users',[]).find(x=>x.id===id); return u?u.name:t('unassigned'); };
+// Only managers and sales reps can own/handle leads. Admin and Marketing are never assignable.
+const ASSIGNABLE_ROLES=['manager','rep'];
+const assignableUsers = () => DB.get('users',[]).filter(u=>ASSIGNABLE_ROLES.includes(u.role));
 // Resolve the owner label for a lead: prefer the current user's live name; if that
 // user was deleted, fall back to the historical ownerName snapshot stored on the lead.
 function ownerLabel(l){
@@ -1008,7 +1011,7 @@ function openLeadModal(id){
   if(!l){ return; }
   const isNew=!id;
   const canDelete=can('delete')&&!isNew;
-  const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
+  const reps=assignableUsers();
   const ownerOpts=`<option value="">${t('unassigned')}</option>`+reps.map(u=>`<option value="${u.id}" ${l.owner===u.id?'selected':''}>${esc(u.name)}</option>`).join('');
   const canAssign = can('assign');
   const stOpts=STATUSES.map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t(ST_KEY[s])}</option>`).join('');
@@ -1090,7 +1093,7 @@ function deleteLead(id){
 function renderNewLeads(){
   const news=DB.get('leads',[]).filter(l=>l.status==='new'&&!l.owner)
     .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
-  const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
+  const reps=assignableUsers();
   document.getElementById('main').innerHTML=`
    <div class="page-head"><div><h1 class="page-h1">${t('newleads_title')}</h1><p class="page-sub">${t('newleads_sub')}</p></div></div>
    ${apiHelpBox()}
@@ -1333,7 +1336,7 @@ function delUser(id){
   const closedCount=leads.filter(l=>l.owner===id && !isActive(l)).length;
 
   // Build the destination options: other reps/managers + "return to New Leads"
-  const others=DB.get('users',[]).filter(u=>u.id!==id && u.role!=='admin');
+  const others=assignableUsers().filter(u=>u.id!==id);
   const destOpts=`<option value="__new__">${t('move_to_new')}</option>`+
     others.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
 
@@ -1464,7 +1467,7 @@ function downloadTemplate(){
   const mktCols=['Source','Campaign','Adset','Ad','Keyword','Term','Content'];
   const headers=[...base,...mktCols];
   const prodExample = (DB.get('products',[])[0]||{}).name || 'CTD';
-  const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
+  const reps=assignableUsers();
   const rep1=(reps[0]||{}).name || (LANG==='he'?'נועה ברק':'Noa Barak');
   const rep2=(reps[1]||{}).name || (LANG==='he'?'איתי שגב':'Itay Segev');
   const mkt1=['Google','Q4-Search','CTD-Exact','ad-ctd-1','crm software','crm','headline-a'];
@@ -1497,13 +1500,13 @@ function handleXlsx(file){
       const resolveProduct=raw=>{ const name=(raw||'').toString().trim(); if(!name) return null;
         let p=products.find(x=>x.name.toLowerCase()===name.toLowerCase());
         if(!p){ p={id:'p_'+uid(),name}; products.push(p); } return p.id; };
-      // resolve sales rep from the Excel: match an existing user by name or email.
-      // matched -> {owner, ownerName}; unmatched name -> historical owner (ownerName only).
+      // resolve sales rep from the Excel: match an existing ASSIGNABLE user (manager/rep) by name or email.
+      // matched -> {owner, ownerName}; otherwise keep the given name as a historical owner only.
       const resolveRep=raw=>{ const v=(raw||'').toString().trim(); if(!v) return {owner:null,ownerName:null};
         const lv=v.toLowerCase();
-        const u=users.find(x=>x.name.toLowerCase()===lv || x.email.toLowerCase()===lv);
+        const u=users.find(x=>ASSIGNABLE_ROLES.includes(x.role) && (x.name.toLowerCase()===lv || x.email.toLowerCase()===lv));
         if(u) return {owner:u.id, ownerName:u.name};
-        return {owner:null, ownerName:v}; }; // kept as historical name (shown as inactive)
+        return {owner:null, ownerName:v}; }; // not an assignable user -> historical name only
       // marketing columns use EXACT header match (so 'Ad' doesn't collide with 'Adset')
       const exact=(o,key)=>{ for(const k of Object.keys(o)){ if(k.toString().trim().toLowerCase()===key) return o[k]; } return ''; };
       const readMarketing=row=>{ const m={}; let has=false;
