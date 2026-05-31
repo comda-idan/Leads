@@ -546,7 +546,7 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v3')) return;
+  if(DB.get('seeded_v4')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'admin123', role:'admin', locked:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'manager123', role:'manager', locked:false},
@@ -554,10 +554,11 @@ function seed(){
     {id:'u_rep2',  name:'איתי שגב', email:'itay@comda.co.il', pass:'rep123', role:'rep', locked:false}
   ];
   const products = [
-    {id:'p_crm', name:'CRM Platform'},
-    {id:'p_cloud', name:'Cloud Hosting'},
-    {id:'p_sec', name:'Cyber Security'},
-    {id:'p_bi', name:'BI & Analytics'}
+    {id:'p_ctd',     name:'CTD'},
+    {id:'p_nadlan',  name:'Nadlan Online'},
+    {id:'p_wesign',  name:'Wesign'},
+    {id:'p_notary',  name:'Notary Sign'},
+    {id:'p_archive', name:'Archive'}
   ];
   const Y = new Date().getFullYear();
   const d = (m,day)=> new Date(Y,m,day).toISOString();
@@ -566,20 +567,20 @@ function seed(){
     {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
   const M = new Date().getMonth(); // current month for some recent leads
   const leads = [
-    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_crm','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}]),
-    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_cloud','won','u_rep1',124000,'email',M,8),
-    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_sec','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}]),
-    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_bi','progress','u_rep2',0,'excel',M,9),
-    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_crm','won','u_rep2',56000,'email',Math.max(0,M-2),18),
-    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_cloud','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}]),
-    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_cloud','progress','u_rep1',0,'email',M,1),
-    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_bi','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22),
-    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_sec','won','u_rep2',43000,'email',Math.max(0,M-1),10),
-    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_crm','lost','u_rep1',0,'email',M,11),
+    mk('יוסי אברהם','yossi@techwave.co.il','050-1234567','TechWave','p_ctd','won','u_rep1',85000,'email',M,3,[{text:'נסגרה עסקה — חבילת Enterprise',at:d(M,4),by:'נועה ברק'}]),
+    mk('שרה דהן','sara@medix.co.il','052-9876543','Medix Health','p_nadlan','won','u_rep1',124000,'email',M,8),
+    mk('אבי מזרחי','avi@buildpro.co.il','054-7778899','BuildPro','p_wesign','progress','u_rep1',0,'email',M,2,[{text:'שיחת היכרות בוצעה, מחכה לאפיון',at:d(M,3),by:'נועה ברק'}]),
+    mk('רונית פלד','ronit@greenfields.co.il','053-2223344','GreenFields','p_archive','progress','u_rep2',0,'excel',M,9),
+    mk('משה לוין','moshe@finlogic.co.il','050-5556677','FinLogic','p_ctd','won','u_rep2',56000,'email',Math.max(0,M-2),18),
+    mk('דנה כספי','dana@retailx.co.il','058-1112233','RetailX','p_nadlan','lost','u_rep2',0,'email',M,7,[{text:'בחרו בספק אחר',at:d(M,14),by:'איתי שגב'}]),
+    mk('עומר טל','omer@cloudnine.co.il','050-4445566','CloudNine','p_notary','progress','u_rep1',0,'email',M,1),
+    mk('ליאת שרון','liat@datacore.co.il','052-8889900','DataCore','p_archive','cancelled','u_rep2',0,'excel',Math.max(0,M-1),22),
+    mk('גיל נחום','gil@autoflow.co.il','054-3334455','AutoFlow','p_wesign','won','u_rep2',43000,'email',Math.max(0,M-1),10),
+    mk('משה ברקת','mosheb@finedge.co.il','050-2027788','FinEdge','p_notary','lost','u_rep1',0,'email',M,11),
     mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24),
     mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26)
   ];
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v3',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v4',true);
 }
 </script>
 
@@ -1203,7 +1204,7 @@ function openProductModal(id){
   const p = id? DB.get('products',[]).find(x=>x.id===id) : {name:''};
   openModal(`<div class="modal" style="max-width:420px"><div class="modal-head"><div><h2>${id?t('manage_products'):t('add_product')}</h2></div>
     <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
-   <div class="modal-body"><div class="field"><label>${t('product_name')}</label><input id="p_name" value="${esc(p.name)}" placeholder="${LANG==='he'?'לדוגמה: CRM Platform':'e.g. CRM Platform'}"></div></div>
+   <div class="modal-body"><div class="field"><label>${t('product_name')}</label><input id="p_name" value="${esc(p.name)}" placeholder="${LANG==='he'?'לדוגמה: CTD':'e.g. CTD'}"></div></div>
    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveProduct()">${t('save')}</button></div></div>`);
   setTimeout(()=>document.getElementById('p_name')?.focus(),50);
 }
@@ -1255,7 +1256,7 @@ function downloadTemplate(){
   const headers = LANG==='he'
     ? ['שם מלא','אימייל','טלפון','חברה','סוג מוצר','איש מכירות אחראי','סטטוס','סכום עסקה']
     : ['Full Name','Email','Phone','Company','Product Type','Sales Rep','Status','Deal Amount'];
-  const prodExample = (DB.get('products',[])[0]||{}).name || 'CRM Platform';
+  const prodExample = (DB.get('products',[])[0]||{}).name || 'CTD';
   // pick two real rep names from the system if available (so the import matches them)
   const reps=DB.get('users',[]).filter(u=>u.role!=='admin');
   const rep1=(reps[0]||{}).name || (LANG==='he'?'נועה ברק':'Noa Barak');
