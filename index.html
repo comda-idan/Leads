@@ -173,6 +173,10 @@ tbody tr:hover{background:var(--surface-2);}
 .cell-company{font-size:12.5px;color:var(--text-soft);margin-top:2px;}
 .linklike{color:var(--brand);font-weight:600;text-decoration:none;border-bottom:1px dashed transparent;transition:.15s;white-space:nowrap;}
 .linklike:hover{border-bottom-color:var(--brand);}
+.wa-btn{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;
+  color:#25D366;background:rgba(37,211,102,.12);flex-shrink:0;transition:.15s;}
+.wa-btn:hover{background:#25D366;color:#fff;transform:translateY(-1px);}
+.wa-btn svg{width:16px;height:16px;}
 .amount{font-family:var(--font-d);font-weight:700;}
 .prodtag{display:inline-block;font-size:12px;font-weight:600;color:var(--brand-dark);background:rgba(66,82,164,.08);
   padding:3px 9px;border-radius:7px;white-space:nowrap;}
@@ -184,6 +188,13 @@ tbody tr:hover{background:var(--surface-2);}
   border:1px solid var(--border-soft);border-radius:11px;}
 .inactive-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--gray);background:var(--gray-bg);
   padding:1px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.02em;margin-inline-start:4px;}
+.pw-rules{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin:-2px 0 4px;padding:11px 13px;
+  background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;}
+.pw-rule{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-faint);transition:.15s;}
+.pw-rule .pw-ic{width:15px;height:15px;flex-shrink:0;color:var(--text-faint);transition:.15s;}
+.pw-rule.ok{color:var(--green);}
+.pw-rule.ok .pw-ic{color:var(--green);}
+@media(max-width:480px){.pw-rules{grid-template-columns:1fr;}}
 
 .badge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:30px;font-size:12px;font-weight:700;white-space:nowrap;}
 .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
@@ -480,7 +491,12 @@ const I18N = {
     del_user_title:"מחיקת איש מכירות", del_user_active:"לאיש מכירות זה יש לידים פעילים. בחרו לאן להעביר אותם לפני המחיקה:",
     del_user_none:"אין לאיש המכירות לידים פעילים. הלידים הסגורים יישמרו עם שמו.",
     reassign_to:"העברת הלידים הפעילים אל", move_to_new:"החזרה ל\"לידים חדשים\" (לא משויך)", confirm_delete:"מחק והעבר",
-    user_deleted:"איש המכירות נמחק והלידים הפעילים הועברו", closed_kept:"לידים סגורים נשמרו בהיסטוריה"
+    user_deleted:"איש המכירות נמחק והלידים הפעילים הועברו", closed_kept:"לידים סגורים נשמרו בהיסטוריה",
+    pw_policy:"הסיסמה חייבת לכלול לפחות 8 תווים, אות גדולה, אות קטנה, מספר ותו מיוחד",
+    pw_req_len:"לפחות 8 תווים", pw_req_upper:"אות גדולה (A-Z)", pw_req_lower:"אות קטנה (a-z)", pw_req_num:"מספר (0-9)", pw_req_special:"תו מיוחד (!@#$…)",
+    set_new_pw_title:"בחירת סיסמה קבועה", set_new_pw_sub:"זוהי כניסה ראשונה עם סיסמה זמנית. יש לבחור סיסמה חדשה וקבועה כדי להמשיך.",
+    cant_lock_last_admin:"לא ניתן לנעול את מנהל המערכת הפעיל היחיד", cant_lock_self:"לא ניתן לנעול את המשתמש שלך",
+    cant_delete_last_admin:"לא ניתן למחוק את מנהל המערכת האחרון", temp_pw_sent:"נשלחה סיסמה זמנית. המשתמש יתבקש לבחור סיסמה חדשה בכניסה."
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -527,7 +543,12 @@ const I18N = {
     del_user_title:"Delete sales rep", del_user_active:"This rep has active leads. Choose where to move them before deleting:",
     del_user_none:"This rep has no active leads. Closed leads will keep their name.",
     reassign_to:"Move active leads to", move_to_new:"Return to \"New Leads\" (unassigned)", confirm_delete:"Delete & move",
-    user_deleted:"Sales rep deleted and active leads reassigned", closed_kept:"Closed leads kept in history"
+    user_deleted:"Sales rep deleted and active leads reassigned", closed_kept:"Closed leads kept in history",
+    pw_policy:"Password must be at least 8 characters with uppercase, lowercase, a number and a special character",
+    pw_req_len:"At least 8 characters", pw_req_upper:"Uppercase letter (A-Z)", pw_req_lower:"Lowercase letter (a-z)", pw_req_num:"Number (0-9)", pw_req_special:"Special character (!@#$…)",
+    set_new_pw_title:"Set a permanent password", set_new_pw_sub:"This is a first sign-in with a temporary password. Choose a new permanent password to continue.",
+    cant_lock_last_admin:"Cannot lock the only active admin", cant_lock_self:"You cannot lock your own account",
+    cant_delete_last_admin:"Cannot delete the last admin", temp_pw_sent:"Temporary password sent. The user will be asked to set a new password on sign-in."
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -538,6 +559,28 @@ const DB = {
   get(k,def){ try{const v=localStorage.getItem('comda_'+k);return v?JSON.parse(v):def;}catch(e){return def;} },
   set(k,v){ localStorage.setItem('comda_'+k, JSON.stringify(v)); }
 };
+
+/* ---------- password policy: >=8 chars, upper, lower, number, special ---------- */
+const PW_RULES=[
+  {k:'pw_req_len',     test:p=>p.length>=8},
+  {k:'pw_req_upper',   test:p=>/[A-Z]/.test(p)},
+  {k:'pw_req_lower',   test:p=>/[a-z]/.test(p)},
+  {k:'pw_req_num',     test:p=>/[0-9]/.test(p)},
+  {k:'pw_req_special', test:p=>/[^A-Za-z0-9]/.test(p)}
+];
+const pwValid = p => PW_RULES.every(r=>r.test(p));
+// Renders a live checklist; call pwChecklistUpdate(prefix,value) on input.
+function pwChecklist(prefix){
+  return `<div class="pw-rules" id="${prefix}_rules">`+
+    PW_RULES.map(r=>`<div class="pw-rule" data-rule="${r.k}">${svg('<circle cx="12" cy="12" r="10"/>','pw-ic')}<span>${t(r.k)}</span></div>`).join('')+
+    `</div>`;
+}
+function pwChecklistUpdate(prefix,val){
+  const box=document.getElementById(prefix+'_rules'); if(!box) return;
+  PW_RULES.forEach(r=>{ const el=box.querySelector('[data-rule="'+r.k+'"]'); if(!el) return;
+    const ok=r.test(val); el.classList.toggle('ok',ok);
+    el.querySelector('svg').innerHTML = ok? '<path d="M20 6L9 17l-5-5"/>' : '<circle cx="12" cy="12" r="10"/>'; });
+}
 const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 // RFC4122-style GUID, immutable per lead
 const guid = () => (crypto.randomUUID ? crypto.randomUUID()
@@ -546,12 +589,12 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v4')) return;
+  if(DB.get('seeded_v5')) return;
   const users = [
-    {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'admin123', role:'admin', locked:false},
-    {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'manager123', role:'manager', locked:false},
-    {id:'u_rep1',  name:'נועה ברק', email:'noa@comda.co.il', pass:'rep123', role:'rep', locked:false},
-    {id:'u_rep2',  name:'איתי שגב', email:'itay@comda.co.il', pass:'rep123', role:'rep', locked:false}
+    {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'Admin@123', role:'admin', locked:false, mustChangePw:false},
+    {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'Manager@123', role:'manager', locked:false, mustChangePw:false},
+    {id:'u_rep1',  name:'נועה ברק', email:'noa@comda.co.il', pass:'Sales@123', role:'rep', locked:false, mustChangePw:false},
+    {id:'u_rep2',  name:'איתי שגב', email:'itay@comda.co.il', pass:'Sales@123', role:'rep', locked:false, mustChangePw:false}
   ];
   const products = [
     {id:'p_ctd',     name:'CTD'},
@@ -580,7 +623,7 @@ function seed(){
     mk('תמר ביטון','tamar@nextstep.co.il','053-6667788','NextStep',null,'new',null,0,'email',M,24),
     mk('רן הראל','ran@smartedge.co.il','050-9990011','SmartEdge',null,'new',null,0,'email',M,26)
   ];
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v4',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v5',true);
 }
 </script>
 
@@ -616,8 +659,33 @@ function doLogin(){
   if(!u){ showAuthErr(LANG==='he'?'משתמש לא נמצא':'User not found'); return; }
   if(u.locked){ showAuthErr(LANG==='he'?'המשתמש נעול. פנו למנהל המערכת':'Account locked. Contact admin'); return; }
   if(u.pass!==pass){ showAuthErr(LANG==='he'?'סיסמה שגויה':'Incorrect password'); return; }
+  document.getElementById('authErr').style.display='none';
+  if(u.mustChangePw){ forcePwReset(u.id); return; } // temp password -> must set a permanent one
   startSession(u.id);
 }
+// Mandatory password-set screen after signing in with a temporary password (no skip/close).
+function forcePwReset(id){
+  PENDING_PW_USER=id;
+  openModal(`<div class="modal" style="max-width:430px">
+    <div class="modal-head"><div><h2>${t('set_new_pw_title')}</h2><p>${t('set_new_pw_sub')}</p></div></div>
+    <div class="modal-body">
+      <div class="field"><label>${t('new_pw')}</label><input id="fp_new" type="password" autocomplete="new-password" oninput="pwChecklistUpdate('fp',this.value)"></div>
+      ${pwChecklist('fp')}
+      <div class="field" style="margin-top:12px"><label>${t('confirm_pw')}</label><input id="fp_conf" type="password" autocomplete="new-password"></div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="saveForcedPw()">${t('save')}</button></div></div>`);
+  setTimeout(()=>document.getElementById('fp_new')?.focus(),50);
+}
+function saveForcedPw(){
+  const nw=document.getElementById('fp_new').value, cf=document.getElementById('fp_conf').value;
+  if(!pwValid(nw)){ toast(t('pw_policy'),false); return; }
+  if(nw!==cf){ toast(t('pw_mismatch'),false); return; }
+  const users=DB.get('users',[]); const u=users.find(x=>x.id===PENDING_PW_USER);
+  u.pass=nw; u.mustChangePw=false; DB.set('users',users);
+  const id=PENDING_PW_USER; PENDING_PW_USER=null;
+  closeModal(); toast(t('pw_changed'),true); startSession(id);
+}
+let PENDING_PW_USER=null;
 function startSession(id){
   SESSION=id; DB.set('session',id);
   document.getElementById('authErr').style.display='none';
@@ -690,6 +758,16 @@ const ST_KEY={new:'st_new',progress:'st_progress',won:'st_won',lost:'st_lost',ca
 const ST_BADGE={new:'b-new',progress:'b-progress',won:'b-won',lost:'b-lost',cancelled:'b-cancelled'};
 const ST_COLOR={new:'#2d6cdf',progress:'#d98a00',won:'#1aa260',lost:'#d9342b',cancelled:'#7a8499'};
 const fmtIls = n => '₪'+(n||0).toLocaleString('en-US');
+// Normalize a phone into an international number for wa.me (digits only, no '+').
+// Israeli local numbers starting with 0 are converted to country code 972.
+function waNumber(phone){
+  let p=(phone||'').replace(/[^\d+]/g,'');
+  if(p.startsWith('+')) return p.slice(1);          // already international
+  if(p.startsWith('00')) return p.slice(2);          // 00<country>...
+  if(p.startsWith('972')) return p;                  // already 972...
+  if(p.startsWith('0')) return '972'+p.slice(1);     // local IL -> +972
+  return p;                                          // fallback: as-is
+}
 const fmtDate = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short'}); };
 const quarterOf = iso => Math.floor(new Date(iso).getMonth()/3)+1;
 const userName = id => { const u=DB.get('users',[]).find(x=>x.id===id); return u?u.name:t('unassigned'); };
@@ -856,7 +934,7 @@ function leadsTable(rows){
     <th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-updated">${t('col_updated')}</th></tr>`;
   const body=rows.map(l=>{
     const mail=l.email?`<a class="linklike" href="mailto:${l.email}" onclick="event.stopPropagation()">${l.email}</a>`:'';
-    const tel=l.phone?`<a class="linklike" href="tel:${l.phone.replace(/[^+\d]/g,'')}" onclick="event.stopPropagation()" style="display:block;margin-top:3px">${l.phone}</a>`:'';
+    const tel=l.phone?contactPhone(l.phone):'';
     const prod=l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>';
     return `<tr onclick="openLeadModal('${l.id}')">
       <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
@@ -874,6 +952,16 @@ function ownerCell(l){
   if(!o) return '<span style="color:var(--text-faint)">'+t('unassigned')+'</span>';
   return esc(o.name)+(o.active?'':` <span class="inactive-tag">${t('inactive_user')}</span>`);
 }
+// Phone line: clickable dial link + WhatsApp icon that opens a chat with this number.
+const WA_PATH='<path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>';
+function contactPhone(phone){
+  const tel=phone.replace(/[^+\d]/g,'');
+  const wa=waNumber(phone);
+  return `<div class="contact-phone" style="display:flex;align-items:center;gap:8px;margin-top:3px">
+    <a class="linklike" href="tel:${tel}" onclick="event.stopPropagation()">${esc(phone)}</a>
+    <a class="wa-btn" href="https://wa.me/${wa}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="WhatsApp" aria-label="WhatsApp">
+      <svg viewBox="0 0 24 24" fill="currentColor">${WA_PATH}</svg></a></div>`;
+}
 function emptyState(h,s,ico){ return `<div class="card"><div class="empty">${svg(ico)}<h3>${h}</h3><p>${s}</p></div></div>`; }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
@@ -882,7 +970,7 @@ function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>
 /* ---------- modal infra ---------- */
 function openModal(html){ const o=document.getElementById('overlay'); o.innerHTML=html; o.classList.add('show'); }
 function closeModal(){ document.getElementById('overlay').classList.remove('show'); document.getElementById('overlay').innerHTML=''; }
-document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeModal(); });
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay' && !PENDING_PW_USER) closeModal(); });
 
 let EDIT_ID=null;
 function openLeadModal(id){
@@ -976,7 +1064,7 @@ function renderNewLeads(){
       <th>${t('col_customer')}</th><th>${t('col_contact')}</th><th class="col-product">${t('col_product')}</th><th>${t('source')}</th><th>${t('assign_to')}</th></tr></thead>
       <tbody>${news.map(l=>`<tr>
         <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
-        <td>${l.email?`<a class="linklike" href="mailto:${l.email}">${l.email}</a>`:''}${l.phone?`<a class="linklike" href="tel:${l.phone.replace(/[^+\d]/g,'')}" style="display:block;margin-top:3px">${l.phone}</a>`:''}</td>
+        <td>${l.email?`<a class="linklike" href="mailto:${l.email}">${l.email}</a>`:''}${l.phone?contactPhone(l.phone):''}</td>
         <td class="col-product">${l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
         <td><span style="font-size:12px;color:var(--text-soft)">${l.source==='email'?'📧 Email':l.source==='excel'?'📄 Excel':'✏️ Manual'}</span></td>
         <td><select onchange="assignLead('${l.id}',this.value)" style="padding:9px 12px;min-width:170px">
@@ -1121,12 +1209,28 @@ function renderSettings(){
   ['dragleave','drop'].forEach(e=>dz.addEventListener(e,ev=>{ev.preventDefault();dz.classList.remove('drag');}));
   dz.addEventListener('drop',ev=>{ if(ev.dataTransfer.files[0]) handleXlsx(ev.dataTransfer.files[0]); });
 }
-function resetPw(id){ const u=DB.get('users',[]).find(x=>x.id===id);
-  const tmp='Cmd'+Math.random().toString(36).slice(2,7); const users=DB.get('users',[]); users.find(x=>x.id===id).pass=tmp; DB.set('users',users);
-  toast(t('pw_temp')+tmp,true); }
-function toggleLock(id){ const users=DB.get('users',[]); const u=users.find(x=>x.id===id); u.locked=!u.locked; DB.set('users',users); renderSettings(); }
+function resetPw(id){
+  // generate a temporary password that satisfies the policy, flag for forced change on next login
+  const tmp='Cmd'+Math.floor(100+Math.random()*900)+'!'+Math.random().toString(36).slice(2,4);
+  const users=DB.get('users',[]); const u=users.find(x=>x.id===id);
+  u.pass=tmp; u.mustChangePw=true; DB.set('users',users);
+  toast(t('pw_temp')+tmp,true);
+  setTimeout(()=>toast(t('temp_pw_sent'),true),300);
+}
+function toggleLock(id){
+  const users=DB.get('users',[]); const u=users.find(x=>x.id===id);
+  if(!u.locked){ // about to LOCK — guard against locking yourself out
+    if(id===SESSION){ toast(t('cant_lock_self'),false); return; }
+    if(u.role==='admin'){ const activeAdmins=users.filter(x=>x.role==='admin'&&!x.locked).length;
+      if(activeAdmins<=1){ toast(t('cant_lock_last_admin'),false); return; } }
+  }
+  u.locked=!u.locked; DB.set('users',users); renderSettings();
+}
 function delUser(id){
   const user=DB.get('users',[]).find(u=>u.id===id); if(!user) return;
+  // never allow removing the last admin — would lock everyone out of Settings
+  if(user.role==='admin'){ const admins=DB.get('users',[]).filter(u=>u.role==='admin').length;
+    if(admins<=1){ toast(t('cant_delete_last_admin'),false); return; } }
   const leads=DB.get('leads',[]);
   const activeLeads=leads.filter(l=>l.owner===id && isActive(l));
   const closedCount=leads.filter(l=>l.owner===id && !isActive(l)).length;
@@ -1182,18 +1286,20 @@ function openUserModal(){
    <div class="modal-body">
      <div class="field"><label>${t('name')}</label><input id="u_name"></div>
      <div class="field"><label>${t('email')}</label><input id="u_email" type="email" placeholder="${t('emailph')}"></div>
-     <div class="field"><label>${t('password')}</label><input id="u_pass" placeholder="••••••••"></div>
-     <div class="field"><label>${t('role')}</label><select id="u_role">
+     <div class="field"><label>${t('password')}</label><input id="u_pass" type="password" placeholder="••••••••" oninput="pwChecklistUpdate('uu',this.value)"></div>
+     ${pwChecklist('uu')}
+     <div class="field" style="margin-top:12px"><label>${t('role')}</label><select id="u_role">
        <option value="rep">${t('role_rep')}</option><option value="manager">${t('role_manager')}</option><option value="admin">${t('role_admin')}</option></select></div>
    </div><div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveUser()">${t('save')}</button></div></div>`);
 }
 function saveUser(){
   const name=document.getElementById('u_name').value.trim(), email=document.getElementById('u_email').value.trim().toLowerCase();
-  const pass=document.getElementById('u_pass').value||'comda123', role=document.getElementById('u_role').value;
+  const pass=document.getElementById('u_pass').value, role=document.getElementById('u_role').value;
   if(!name||!email){ toast(LANG==='he'?'יש למלא שם ואימייל':'Name & email required',false); return; }
+  if(!pwValid(pass)){ toast(t('pw_policy'),false); return; }
   const users=DB.get('users',[]);
   if(users.some(u=>u.email.toLowerCase()===email)){ toast(LANG==='he'?'אימייל כבר קיים':'Email exists',false); return; }
-  users.push({id:uid(),name,email,pass,role,locked:false}); DB.set('users',users);
+  users.push({id:uid(),name,email,pass,role,locked:false,mustChangePw:false}); DB.set('users',users);
   closeModal(); toast(t('user_added'),true); renderSettings();
 }
 
@@ -1236,8 +1342,9 @@ function openChangePw(){
     <button class="close-x" onclick="closeModal()">${svg('<path d="M18 6L6 18M6 6l12 12"/>')}</button></div>
    <div class="modal-body">
      <div class="field"><label>${t('current_pw')}</label><input id="cp_cur" type="password" autocomplete="current-password"></div>
-     <div class="field"><label>${t('new_pw')}</label><input id="cp_new" type="password" autocomplete="new-password"></div>
-     <div class="field"><label>${t('confirm_pw')}</label><input id="cp_conf" type="password" autocomplete="new-password"></div>
+     <div class="field"><label>${t('new_pw')}</label><input id="cp_new" type="password" autocomplete="new-password" oninput="pwChecklistUpdate('cp',this.value)"></div>
+     ${pwChecklist('cp')}
+     <div class="field" style="margin-top:12px"><label>${t('confirm_pw')}</label><input id="cp_conf" type="password" autocomplete="new-password"></div>
    </div>
    <div class="modal-foot"><button class="btn btn-ghost" onclick="closeModal()">${t('cancel')}</button><button class="btn" onclick="saveOwnPw()">${t('save')}</button></div></div>`);
 }
@@ -1245,9 +1352,9 @@ function saveOwnPw(){
   const cur=document.getElementById('cp_cur').value, nw=document.getElementById('cp_new').value, cf=document.getElementById('cp_conf').value;
   const u=currentUser();
   if(u.pass!==cur){ toast(t('pw_wrong_current'),false); return; }
-  if(nw.length<4){ toast(t('pw_short'),false); return; }
+  if(!pwValid(nw)){ toast(t('pw_policy'),false); return; }
   if(nw!==cf){ toast(t('pw_mismatch'),false); return; }
-  const users=DB.get('users',[]); users.find(x=>x.id===u.id).pass=nw; DB.set('users',users);
+  const users=DB.get('users',[]); const uu=users.find(x=>x.id===u.id); uu.pass=nw; uu.mustChangePw=false; DB.set('users',users);
   closeModal(); toast(t('pw_changed'),true);
 }
 
@@ -1332,8 +1439,8 @@ function applyLang(){
   document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n));
   document.getElementById('loginEmail').placeholder=t('emailph');
   document.getElementById('demoHint').innerHTML=LANG==='he'
-    ?'גישת הדגמה · admin@comda.co.il / מנהל · manager@comda.co.il · noa@comda.co.il'
-    :'Demo access · admin@comda.co.il / manager@comda.co.il · noa@comda.co.il';
+    ?'גישת הדגמה · admin@comda.co.il / Admin@123 · manager@comda.co.il / Manager@123'
+    :'Demo access · admin@comda.co.il / Admin@123 · manager@comda.co.il / Manager@123';
   const lbl=LANG==='he'?'EN':'עב';
   document.getElementById('langBtnAuth').textContent=lbl; document.getElementById('langBtnApp').textContent=lbl;
 }
