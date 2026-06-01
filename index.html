@@ -195,6 +195,15 @@ tbody tr:hover{background:var(--surface-2);}
   border:1px solid var(--border-soft);border-radius:11px;}
 .inactive-tag{display:inline-block;font-size:10px;font-weight:700;color:var(--gray);background:var(--gray-bg);
   padding:1px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.02em;margin-inline-start:4px;}
+.newlead-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;color:#fff;
+  background:var(--accent);padding:2px 8px 2px 6px;border-radius:20px;margin-inline-start:8px;vertical-align:middle;
+  animation:nbpulse 1.8s ease-in-out infinite;}
+.newlead-badge .nb-ic{width:12px;height:12px;}
+@keyframes nbpulse{0%,100%{box-shadow:0 0 0 0 rgba(237,28,36,.45);}50%{box-shadow:0 0 0 5px rgba(237,28,36,0);}}
+tbody tr.row-new{background:rgba(237,28,36,.045);}
+tbody tr.row-new:hover{background:rgba(237,28,36,.08);}
+tbody tr.row-new td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+html[dir=rtl] tbody tr.row-new td:first-child{box-shadow:inset -3px 0 0 var(--accent);}
 .pw-rules{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin:-2px 0 4px;padding:11px 13px;
   background:var(--surface-2);border:1px solid var(--border-soft);border-radius:11px;}
 .pw-rule{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-faint);transition:.15s;}
@@ -349,7 +358,7 @@ code.api{background:#fff;border:1px solid var(--border);padding:2px 7px;border-r
   .table-wrap{border-radius:13px;}
 
   /* hide lower-priority columns on narrow phones to avoid horizontal scroll */
-  th.col-updated,td.col-updated{display:none;}
+  th.col-updated,td.col-updated,th.col-received,td.col-received{display:none;}
   .prodtag{font-size:11px;padding:2px 7px;}
 
   .modal-head{padding:18px 18px 12px;}
@@ -469,7 +478,8 @@ const I18N = {
     settings_title:"הגדרות מערכת", settings_sub:"ניהול משתמשים, הרשאות וייבוא נתונים",
     search:"חיפוש לפי שם, חברה, אימייל…",
     st_new:"חדש", st_progress:"בטיפול", st_won:"זכייה", st_lost:"הפסד", st_cancelled:"בוטל",
-    col_customer:"לקוח", col_contact:"פרטי קשר", col_status:"סטטוס", col_amount:"סכום", col_owner:"אחראי", col_updated:"עודכן", col_actions:"",
+    col_customer:"לקוח", col_contact:"פרטי קשר", col_status:"סטטוס", col_amount:"סכום", col_owner:"אחראי", col_updated:"עודכן", col_received:"התקבל", col_actions:"",
+    received_at:"תאריך קבלת הליד", new_assignment:"ליד חדש שטרם טופל", new_badge:"חדש אצלך",
     new_lead:"ליד חדש", add_lead:"הוספת ליד", edit_lead:"עריכת ליד", save:"שמירה", cancel:"ביטול", delete:"מחיקה", assign:"שיוך", close_won:"סגירה כזכייה",
     fullname:"שם מלא", phone:"טלפון", company:"חברה", status:"סטטוס", amount:"סכום עסקה (₪)", owner:"איש מכירות", note:"הוספת הערת טיפול", notes:"היסטוריית טיפול", source:"מקור",
     assign_to:"שייך לאיש מכירות", select_rep:"בחר איש מכירות…", unassigned:"לא משויך",
@@ -530,7 +540,8 @@ const I18N = {
     settings_title:"System Settings", settings_sub:"Manage users, permissions and data import",
     search:"Search by name, company, email…",
     st_new:"New", st_progress:"In Progress", st_won:"Won", st_lost:"Lost", st_cancelled:"Cancelled",
-    col_customer:"Customer", col_contact:"Contact", col_status:"Status", col_amount:"Amount", col_owner:"Owner", col_updated:"Updated", col_actions:"",
+    col_customer:"Customer", col_contact:"Contact", col_status:"Status", col_amount:"Amount", col_owner:"Owner", col_updated:"Updated", col_received:"Received", col_actions:"",
+    received_at:"Lead received date", new_assignment:"New lead, not yet handled", new_badge:"New to you",
     new_lead:"New Lead", add_lead:"Add Lead", edit_lead:"Edit Lead", save:"Save", cancel:"Cancel", delete:"Delete", assign:"Assign", close_won:"Close as Won",
     fullname:"Full name", phone:"Phone", company:"Company", status:"Status", amount:"Deal amount (₪)", owner:"Sales rep", note:"Add activity note", notes:"Activity history", source:"Source",
     assign_to:"Assign to rep", select_rep:"Select a rep…", unassigned:"Unassigned",
@@ -618,7 +629,7 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v9')) return;
+  if(DB.get('seeded_v10')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'Admin@123', role:'admin', locked:false, mustChangePw:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'Manager@123', role:'manager', locked:false, mustChangePw:false},
@@ -684,9 +695,12 @@ function seed(){
       src==='Google'?pick(['crm software','digital signature','notary online','archive system']):'',
       src==='Google'?pick(['crm','esign','notary']):'',
       pick(['headline-a','headline-b','video-1','image-2','carousel-1']));
-    leads.push(mk(fn+' '+ln,email,phone,co,product,status,owner,amount,rnd()<0.5?'email':'excel',month,day,[],marketing));
+    const lead=mk(fn+' '+ln,email,phone,co,product,status,owner,amount,rnd()<0.5?'email':'excel',month,day,[],marketing);
+    // demo: mark a few current-month, in-progress leads as freshly assigned (not yet handled)
+    if(i<CUR_MONTH_COUNT && status==='progress' && rnd()<0.5) lead.assignedNew=true;
+    leads.push(lead);
   }
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v9',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v10',true);
 }
 </script>
 
@@ -837,6 +851,7 @@ function waNumber(phone){
   return p;                                          // fallback: as-is
 }
 const fmtDate = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short'}); };
+const fmtDateFull = iso => { const d=new Date(iso); return d.toLocaleDateString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short',year:'numeric'}); };
 const quarterOf = iso => Math.floor(new Date(iso).getMonth()/3)+1;
 const userName = id => { const u=DB.get('users',[]).find(x=>x.id===id); return u?u.name:t('unassigned'); };
 // Only managers and sales reps can own/handle leads. Admin and Marketing are never assignable.
@@ -1002,18 +1017,21 @@ function statCard(label,val,sub,color,ico){
 function leadsTable(rows){
   const showOwner = currentUser().role!=='rep';
   const head=`<tr><th>${t('col_customer')}</th><th>${t('col_contact')}</th><th>${t('col_status')}</th>
-    <th class="col-product">${t('col_product')}</th><th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-updated">${t('col_updated')}</th></tr>`;
+    <th class="col-product">${t('col_product')}</th><th>${t('col_amount')}</th>${showOwner?`<th>${t('col_owner')}</th>`:''}<th class="col-received">${t('col_received')}</th><th class="col-updated">${t('col_updated')}</th></tr>`;
   const body=rows.map(l=>{
     const mail=l.email?`<a class="linklike" href="mailto:${l.email}" onclick="event.stopPropagation()">${l.email}</a>`:'';
     const tel=l.phone?contactPhone(l.phone):'';
     const prod=l.product?`<span class="prodtag">${esc(productName(l.product))}</span>`:'<span style="color:var(--text-faint)">—</span>';
-    return `<tr onclick="openLeadModal('${l.id}')">
-      <td><div class="cell-name">${esc(l.name)}</div><div class="cell-company">${esc(l.company||'')}</div></td>
+    const isNewToMe = l.assignedNew;
+    const newBadge = isNewToMe? `<span class="newlead-badge" title="${t('new_assignment')}">${svg('<path d="M12 2a7 7 0 00-7 7c0 3-1 4-2 5h18c-1-1-2-2-2-5a7 7 0 00-7-7z"/><path d="M10 21a2 2 0 004 0"/>','nb-ic')}${t('new_badge')}</span>`:'';
+    return `<tr class="${isNewToMe?'row-new':''}" onclick="openLeadModal('${l.id}')">
+      <td><div class="cell-name">${esc(l.name)}${newBadge}</div><div class="cell-company">${esc(l.company||'')}</div></td>
       <td>${mail}${tel}</td>
       <td><span class="badge ${ST_BADGE[l.status]}">${t(ST_KEY[l.status])}</span></td>
       <td class="col-product">${prod}</td>
       <td>${l.status==='won'&&l.amount?`<span class="amount">${fmtIls(l.amount)}</span>`:'<span style="color:var(--text-faint)">—</span>'}</td>
       ${showOwner?`<td>${ownerCell(l)}</td>`:''}
+      <td class="col-received" style="color:var(--text-soft);white-space:nowrap">${l.createdAt?fmtDate(l.createdAt):'—'}</td>
       <td class="col-updated" style="color:var(--text-soft);white-space:nowrap">${fmtDate(l.updatedAt)}</td></tr>`;
   }).join('');
   return `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
@@ -1043,11 +1061,12 @@ function openModal(html){ const o=document.getElementById('overlay'); o.innerHTM
 function closeModal(){ document.getElementById('overlay').classList.remove('show'); document.getElementById('overlay').innerHTML=''; }
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay' && !PENDING_PW_USER) closeModal(); });
 
-let EDIT_ID=null;
+let EDIT_ID=null, EDIT_PREV_OWNER=null;
 function openLeadModal(id){
   EDIT_ID=id||null;
   const l = id? DB.get('leads',[]).find(x=>x.id===id) : {name:'',email:'',phone:'',company:'',product:'',status:'new',amount:0,owner:currentUser().role==='rep'?currentUser().id:null,notes:[]};
   if(!l){ return; }
+  EDIT_PREV_OWNER = l.owner||null;
   const isNew=!id;
   const canDelete=can('delete')&&!isNew;
   const reps=assignableUsers();
@@ -1083,6 +1102,7 @@ function openLeadModal(id){
           <div class="mkt-block-head">${svg(ICON.marketing)}<span>${t('marketing_fields')}</span></div>
           ${MK_FIELDS.filter(f=>l.marketing[f]).map(f=>`<div class="mkt-row"><span>${t(MK_LABEL[f])}</span><b>${esc(l.marketing[f])}</b></div>`).join('')}
         </div>`:''}
+      ${!isNew?`<div class="leadid-row"><span>${t('received_at')}</span><b style="color:var(--text);font-size:13px">${l.createdAt?fmtDateFull(l.createdAt):'—'}</b></div>`:''}
       ${!isNew?`<div class="leadid-row"><span>${t('lead_id')}</span><code>${esc(l.id)}</code></div>`:''}
     </div>
     <div class="modal-foot">
@@ -1131,6 +1151,10 @@ function saveLead(){
       }
     });
     Object.assign(l,newVals,{ownerName:keptName,updatedAt:now()});
+    // The "new to you" alert clears once the owner actually handles the lead.
+    // If a manager reassigns to a (different) rep here, re-flag it as new for that rep.
+    if(l.owner===SESSION){ l.assignedNew=false; }
+    else if(owner && owner!==EDIT_PREV_OWNER){ l.assignedNew=true; }
     if(noteTxt){ l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
   }else{
     leads.push({id:guid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
@@ -1151,7 +1175,7 @@ function deleteLead(id){
 /* ---------- NEW LEADS TAB ---------- */
 function renderNewLeads(){
   const news=DB.get('leads',[]).filter(l=>l.status==='new'&&!l.owner)
-    .sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    .sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
   const reps=assignableUsers();
   document.getElementById('main').innerHTML=`
    <div class="page-head"><div><h1 class="page-h1">${t('newleads_title')}</h1><p class="page-sub">${t('newleads_sub')}</p></div></div>
@@ -1175,7 +1199,7 @@ function renderNewLeads(){
 function assignLead(id,owner){
   if(!owner) return;
   const leads=DB.get('leads',[]); const l=leads.find(x=>x.id===id);
-  l.owner=owner; l.ownerName=userName(owner); l.status='progress'; l.updatedAt=now();
+  l.owner=owner; l.ownerName=userName(owner); l.status='progress'; l.assignedNew=true; l.updatedAt=now();
   l.notes=l.notes||[]; l.notes.push({text:(LANG==='he'?'הליד שויך ל-':'Assigned to ')+userName(owner),at:now(),by:currentUser().name});
   DB.set('leads',leads); buildNav(); toast(t('assigned'),true); renderNewLeads();
 }
