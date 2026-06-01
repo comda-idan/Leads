@@ -249,6 +249,10 @@ html[dir=rtl] .field select{background-position:left 14px center;}
 /* notes timeline */
 .notes{display:flex;flex-direction:column;gap:10px;max-height:200px;overflow-y:auto;margin-top:4px;}
 .note{background:var(--surface-2);border:1px solid var(--border-soft);border-radius:12px;padding:10px 12px;font-size:13.5px;}
+.note-change{background:#f6f3ff;border-color:#e6dcff;display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;color:#5b21b6;}
+.note-change span{flex:1;min-width:0;}
+.note-change .note-ic{width:14px;height:14px;flex-shrink:0;margin-top:2px;color:#7c3aed;}
+.note-change .note-meta{color:#9b8bc4;flex-basis:100%;}
 .note-meta{font-size:11px;color:var(--text-faint);margin-top:5px;}
 
 /* toast */
@@ -510,7 +514,9 @@ const I18N = {
     select_field:"בחר שדה לניתוח", breakdown_by:"התפלגות לפי", cross_status:"חיתוך מול סטטוס הליד",
     no_marketing_data:"אין נתוני שיווק להצגה", no_marketing_sub:"לידים שייובאו מאקסל או API עם נתוני שיווק יופיעו כאן",
     not_set:"לא צוין", total_in_field:"סך ערכים", top_value:"ערך מוביל",
-    lead_count:"כמות לידים", revenue:"סכום שנכנס (₪)", total_revenue:"סך הכנסות"
+    lead_count:"כמות לידים", revenue:"סכום שנכנס (₪)", total_revenue:"סך הכנסות",
+    chg_field:"שדה", changed_from_to:"שונה", to_word:"ל-", lead_created:"הליד נוצר",
+    f_name:"שם", f_email:"אימייל", f_phone:"טלפון", f_company:"חברה", f_product:"סוג מוצר", f_status:"סטטוס", f_amount:"סכום עסקה", f_owner:"איש מכירות אחראי", empty_val:"(ריק)"
   },
   en:{
     auth_title:"Opportunity Portal", auth_sub:"Sign in to manage your leads",
@@ -569,7 +575,9 @@ const I18N = {
     select_field:"Select field to analyze", breakdown_by:"Breakdown by", cross_status:"Cross-tab with lead status",
     no_marketing_data:"No marketing data to show", no_marketing_sub:"Leads imported from Excel or API with marketing data will appear here",
     not_set:"Not set", total_in_field:"Distinct values", top_value:"Top value",
-    lead_count:"Lead count", revenue:"Revenue (₪)", total_revenue:"Total revenue"
+    lead_count:"Lead count", revenue:"Revenue (₪)", total_revenue:"Total revenue",
+    chg_field:"field", changed_from_to:"changed", to_word:"to", lead_created:"Lead created",
+    f_name:"Name", f_email:"Email", f_phone:"Phone", f_company:"Company", f_product:"Product", f_status:"Status", f_amount:"Deal amount", f_owner:"Sales rep", empty_val:"(empty)"
   }
 };
 let LANG = localStorage.getItem('comda_lang') || 'he';
@@ -610,7 +618,7 @@ const now = () => new Date().toISOString();
 
 /* ---------- seed demo data (first run) ---------- */
 function seed(){
-  if(DB.get('seeded_v8')) return;
+  if(DB.get('seeded_v9')) return;
   const users = [
     {id:'u_admin', name:'מאיה לוי', email:'admin@comda.co.il', pass:'Admin@123', role:'admin', locked:false, mustChangePw:false},
     {id:'u_mgr',   name:'דני כהן',  email:'manager@comda.co.il', pass:'Manager@123', role:'manager', locked:false, mustChangePw:false},
@@ -642,27 +650,31 @@ function seed(){
   const repIds=['u_rep1','u_rep2'];
   const sources=['Google','Facebook','LinkedIn','Organic','Instagram'];
   const campaignBy={Google:'Q4-Search',Facebook:'Nadlan-Launch',LinkedIn:'Enterprise-ABM',Organic:'',Instagram:'Awareness'};
-  const statusPlan=[ // ~50 leads, weighted mix
-    ...Array(18).fill('won'),
-    ...Array(14).fill('progress'),
-    ...Array(7).fill('lost'),
-    ...Array(4).fill('cancelled'),
-    ...Array(7).fill('new')
+  const statusPlan=[ // ~70 leads, weighted mix
+    ...Array(26).fill('won'),
+    ...Array(20).fill('progress'),
+    ...Array(9).fill('lost'),
+    ...Array(5).fill('cancelled'),
+    ...Array(10).fill('new')
   ];
   // pseudo-random but deterministic
   let _s=12345; const rnd=()=>{ _s=(_s*1103515245+12345)&0x7fffffff; return _s/0x7fffffff; };
   const pick=arr=>arr[Math.floor(rnd()*arr.length)];
+  // deterministic shuffle so the current-month slice isn't all the same status
+  for(let i=statusPlan.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); const tmp=statusPlan[i]; statusPlan[i]=statusPlan[j]; statusPlan[j]=tmp; }
   // won amounts centered so the average completed deal is ~₪8,000
-  const wonAmount=()=>{ const r=rnd(); let a; if(r<0.80) a=3000+rnd()*8000; else if(r<0.95) a=11000+rnd()*5000; else a=16000+rnd()*9000; return Math.round(a/100)*100; };
+  const wonAmount=()=>{ const r=rnd(); let a; if(r<0.82) a=3000+rnd()*7500; else if(r<0.95) a=10500+rnd()*5000; else a=15500+rnd()*8000; return Math.round(a/100)*100; };
+  const TOTAL=70, CUR_MONTH_COUNT=24; // at least 24 leads dated to the current month
   const leads=[];
-  for(let i=0;i<50;i++){
+  // shuffle indices so the current-month leads aren't all the same status
+  for(let i=0;i<TOTAL;i++){
     const status=statusPlan[i]||'progress';
-    const closed=status==='won'||status==='lost'||status==='cancelled';
     const owner = status==='new' ? null : pick(repIds);
     const product = status==='new' && rnd()<0.4 ? null : pick(prodIds);
     const amount = status==='won' ? wonAmount() : 0;
     const src=pick(sources);
-    const month = Math.max(0, M - Math.floor(rnd()*6)); // spread over last ~6 months of this year
+    // first CUR_MONTH_COUNT leads -> current month; the rest spread over the previous ~5 months
+    const month = i < CUR_MONTH_COUNT ? M : Math.max(0, M - (1+Math.floor(rnd()*5)));
     const day = 1+Math.floor(rnd()*26);
     const fn=pick(firsts), ln=pick(lasts), co=pick(companies);
     const email=`lead${i+1}@${co.toLowerCase()}.co.il`;
@@ -674,7 +686,7 @@ function seed(){
       pick(['headline-a','headline-b','video-1','image-2','carousel-1']));
     leads.push(mk(fn+' '+ln,email,phone,co,product,status,owner,amount,rnd()<0.5?'email':'excel',month,day,[],marketing));
   }
-  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v8',true);
+  DB.set('users',users); DB.set('products',products); DB.set('leads',leads); DB.set('seeded_v9',true);
 }
 </script>
 
@@ -1044,7 +1056,7 @@ function openLeadModal(id){
   const stOpts=STATUSES.map(s=>`<option value="${s}" ${l.status===s?'selected':''}>${t(ST_KEY[s])}</option>`).join('');
   const products=DB.get('products',[]);
   const prodOpts=`<option value="">${t('select_product')}</option>`+products.map(p=>`<option value="${p.id}" ${l.product===p.id?'selected':''}>${esc(p.name)}</option>`).join('');
-  const notesHtml=(l.notes||[]).slice().reverse().map(n=>`<div class="note">${esc(n.text)}<div class="note-meta">${esc(n.by)} · ${new Date(n.at).toLocaleString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')||`<p style="color:var(--text-faint);font-size:13px">—</p>`;
+  const notesHtml=(l.notes||[]).slice().reverse().map(n=>`<div class="note${n.type==='change'?' note-change':''}">${n.type==='change'?svg('<path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/>','note-ic'):''}<span>${esc(n.text)}</span><div class="note-meta">${esc(n.by)} · ${new Date(n.at).toLocaleString(LANG==='he'?'he-IL':'en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('')||`<p style="color:var(--text-faint);font-size:13px">—</p>`;
 
   openModal(`<div class="modal">
     <div class="modal-head"><div><h2>${isNew?t('add_lead'):t('edit_lead')}</h2>${!isNew?`<p>${esc(l.company||'')}</p>`:''}</div>
@@ -1097,9 +1109,29 @@ function saveLead(){
     const l=leads.find(x=>x.id===EDIT_ID); // id (GUID) is never modified
     // keep the previous frozen name if owner is being cleared, so closed-lead history isn't lost
     const keptName = owner? ownerName : (l.ownerName||null);
-    Object.assign(l,{name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
-      company:document.getElementById('m_company').value.trim(),product,status,amount,owner,ownerName:keptName,updatedAt:now()});
-    if(noteTxt){ l.notes=l.notes||[]; l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
+    const newVals={name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
+      company:document.getElementById('m_company').value.trim(),product,status,amount,owner};
+    // ----- build a change log entry per modified field -----
+    const disp=(field,v)=>{
+      if(field==='status') return v?t(ST_KEY[v]):t('empty_val');
+      if(field==='product') return v?productName(v):t('not_set');
+      if(field==='owner') return v?userName(v):t('unassigned');
+      if(field==='amount') return v?fmtIls(v):'₪0';
+      return (v===''||v==null)?t('empty_val'):String(v);
+    };
+    const fieldLabel={name:'f_name',email:'f_email',phone:'f_phone',company:'f_company',product:'f_product',status:'f_status',amount:'f_amount',owner:'f_owner'};
+    l.notes=l.notes||[];
+    Object.keys(newVals).forEach(f=>{
+      const before=l[f]??(f==='amount'?0:null), after=newVals[f];
+      const a=(before==null?'':before), b=(after==null?'':after);
+      if(String(a)!==String(b)){
+        l.notes.push({type:'change',field:f,
+          text:`${t(fieldLabel[f])}: ${disp(f,before)} → ${disp(f,after)}`,
+          at:now(),by:currentUser().name});
+      }
+    });
+    Object.assign(l,newVals,{ownerName:keptName,updatedAt:now()});
+    if(noteTxt){ l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
   }else{
     leads.push({id:guid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
       company:document.getElementById('m_company').value.trim(),product,status,amount,owner,ownerName,source:'manual',
@@ -1159,7 +1191,7 @@ function apiHelpBox(){
 <script>
 /* ---------- REPORTS ---------- */
 let CH=[];
-let reportPeriod='quarter'; // 'month' | 'quarter' | 'year'
+let reportPeriod='month'; // 'month' | 'quarter' | 'year'
 function setPeriod(p){ reportPeriod=p; renderReports(); }
 function renderReports(){
   const allLeads=DB.get('leads',[]);
@@ -1228,7 +1260,7 @@ function renderReports(){
 
 /* ---------- MARKETING TAB ---------- */
 let MKT_FIELD='source';
-let mktPeriod='quarter'; // 'month' | 'quarter' | 'year'
+let mktPeriod='month'; // 'month' | 'quarter' | 'year'
 function setMktField(f){ MKT_FIELD=f; renderMarketing(); }
 function setMktPeriod(p){ mktPeriod=p; renderMarketing(); }
 function renderMarketing(){
