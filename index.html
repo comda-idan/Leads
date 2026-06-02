@@ -645,11 +645,16 @@ function seed(){
     {id:'p_archive', name:'Archive'}
   ];
   const Y = new Date().getFullYear();
-  const d = (m,day)=> new Date(Y,m,day).toISOString();
+  const NOW=Date.now();
+  const clampPast = ms => Math.min(ms, NOW);
+  const d = (m,day)=> new Date(clampPast(new Date(Y,m,day).getTime())).toISOString();
   const nameOf = id => { const u=users.find(x=>x.id===id); return u?u.name:null; };
-  const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[],mkt=null)=>(
-    {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,
-     marketing:mkt,createdAt:d(mc,md),updatedAt:d(mc,md+2),notes});
+  const mk=(name,email,phone,company,product,status,owner,amount,src,mc,md,notes=[],mkt=null)=>{
+    const created=clampPast(new Date(Y,mc,md).getTime());
+    const updated=clampPast(created + 2*86400000); // +2 days, but never in the future
+    return {id:guid(),name,email,phone,company,product,status,owner,ownerName:nameOf(owner),amount,source:src,
+     marketing:mkt,createdAt:new Date(created).toISOString(),updatedAt:new Date(updated).toISOString(),notes};
+  };
   // demo marketing payloads (UTM-style)
   const mkt=(source,campaign,adset,ad,keyword,term,content)=>({source,campaign,adset,ad,keyword,term,content});
   const M = new Date().getMonth(); // current month
@@ -685,8 +690,9 @@ function seed(){
     const amount = status==='won' ? wonAmount() : 0;
     const src=pick(sources);
     // first CUR_MONTH_COUNT leads -> current month; the rest spread over the previous ~5 months
+    const today=new Date().getDate();
     const month = i < CUR_MONTH_COUNT ? M : Math.max(0, M - (1+Math.floor(rnd()*5)));
-    const day = 1+Math.floor(rnd()*26);
+    const day = i < CUR_MONTH_COUNT ? (1+Math.floor(rnd()*Math.max(1,today))) : (1+Math.floor(rnd()*26));
     const fn=pick(firsts), ln=pick(lasts), co=pick(companies);
     const email=`lead${i+1}@${co.toLowerCase()}.co.il`;
     const phone='05'+pick(['0','2','3','4','8'])+'-'+(1000000+Math.floor(rnd()*8999999));
@@ -1150,12 +1156,15 @@ function saveLead(){
           at:now(),by:currentUser().name});
       }
     });
-    Object.assign(l,newVals,{ownerName:keptName,updatedAt:now()});
-    // The "new to you" alert clears once the owner actually handles the lead.
-    // If a manager reassigns to a (different) rep here, re-flag it as new for that rep.
-    if(l.owner===SESSION){ l.assignedNew=false; }
-    else if(owner && owner!==EDIT_PREV_OWNER){ l.assignedNew=true; }
+    // Always record a manual note if one was written (independent of field changes).
     if(noteTxt){ l.notes.push({text:noteTxt,at:now(),by:currentUser().name}); }
+    Object.assign(l,newVals,{ownerName:keptName,updatedAt:now()});
+    // The "new to you" alert clears as soon as the assigned owner handles the lead
+    // (any edit or note by them). If a manager reassigns to a different rep, re-flag it.
+    const handledByOwner = (l.owner===SESSION);
+    const reassignedToOther = owner && owner!==EDIT_PREV_OWNER && owner!==SESSION;
+    if(reassignedToOther){ l.assignedNew=true; }
+    else if(handledByOwner){ l.assignedNew=false; }
   }else{
     leads.push({id:guid(),name,email:document.getElementById('m_email').value.trim(),phone:document.getElementById('m_phone').value.trim(),
       company:document.getElementById('m_company').value.trim(),product,status,amount,owner,ownerName,source:'manual',
