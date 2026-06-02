@@ -887,13 +887,25 @@ function inPeriod(iso,period){
 let CURRENT='leads';
 const NAV=[{k:'leads',i:'leads'},{k:'newleads',i:'newleads'},{k:'reports',i:'reports'},{k:'marketing',i:'marketing'},{k:'settings',i:'settings'}];
 function newLeadCount(){ return DB.get('leads',[]).filter(l=>l.status==='new'&&!l.owner).length; }
+// Leads flagged "new to you" (assigned, not yet handled) that the current user is responsible for.
+function myNewAssignedCount(){
+  const u=currentUser(); if(!u) return 0;
+  const all=DB.get('leads',[]).filter(l=>l.assignedNew);
+  return u.role==='rep' ? all.filter(l=>l.owner===u.id).length : all.length;
+}
+function tabBadgeCount(k){
+  if(k==='newleads') return newLeadCount();
+  if(k==='leads') return myNewAssignedCount();
+  return 0;
+}
 function buildNav(){
   const tabs=myTabs();
   const side=document.getElementById('sidebar'), bot=document.getElementById('bottomnav');
   side.innerHTML=''; bot.innerHTML='';
   NAV.filter(n=>tabs.includes(n.k)).forEach(n=>{
-    const badge = n.k==='newleads'&&newLeadCount()? `<span class="nav-badge">${newLeadCount()}</span>`:'';
-    const bbadge = n.k==='newleads'&&newLeadCount()? `<span class="bn-badge">${newLeadCount()}</span>`:'';
+    const cnt=tabBadgeCount(n.k);
+    const badge = cnt? `<span class="nav-badge">${cnt}</span>`:'';
+    const bbadge = cnt? `<span class="bn-badge">${cnt}</span>`:'';
     side.insertAdjacentHTML('beforeend',
       `<button class="nav-item ${n.k===CURRENT?'active':''}" data-k="${n.k}" onclick="go('${n.k}')">${svg(ICON[n.k])}<span>${t('nav_'+n.k)}</span>${badge}</button>`);
     bot.insertAdjacentHTML('beforeend',
